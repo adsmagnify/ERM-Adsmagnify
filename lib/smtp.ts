@@ -41,7 +41,7 @@ export async function sendDelayEmail(input: DelayEmailInput) {
     });
 
     await transporter.sendMail({
-      from: `"Adsmagnify Clock" <${smtp.from}>`,
+      from: `"${input.name} via Adsmagnify Clock" <${smtp.from}>`,
       to: DELAY_EMAIL_TO,
       cc: [...DELAY_EMAIL_CC],
       replyTo: input.email || undefined,

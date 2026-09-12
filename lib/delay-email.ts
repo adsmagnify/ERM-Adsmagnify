@@ -1,8 +1,9 @@
 import { formatClockTime } from "@/lib/schedule";
 import { formatIstDate } from "@/lib/time";
 
-export const DELAY_EMAIL_TO = "accounts@adsmagnify.in";
+export const DELAY_EMAIL_TO = "adsmagnify@gmail.com";
 export const DELAY_EMAIL_CC = [
+  "accounts@adsmagnify.in",
   "vinay.h@adsmagnify.in",
   "alokebajpai@gmail.com",
 ] as const;

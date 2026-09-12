@@ -130,8 +130,7 @@ export function DelayNoticeForm({
         </Field>
       </div>
       <p className="mt-4 text-sm text-muted-foreground">
-        Emails {DELAY_EMAIL_TO}, with {DELAY_EMAIL_CC[0]} and {DELAY_EMAIL_CC[1]}{" "}
-        on cc.
+        Emails {DELAY_EMAIL_TO}, with {DELAY_EMAIL_CC.join(", ")} on cc.
       </p>
       <SubmitButton disabled={pending} className="mt-5 w-full sm:w-auto">
         {pending ? "Sending…" : "Send delay email"}
