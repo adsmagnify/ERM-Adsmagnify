@@ -17,7 +17,9 @@ export default async function TasksPage() {
         .order("created_at", { ascending: false }),
       supabase
         .from("profiles")
-        .select("id, full_name, email, role, created_at")
+        .select(
+          "id, full_name, email, role, created_at, clock_in_by, clock_out_after, wednesday_clock_in_by"
+        )
         .order("created_at", { ascending: true }),
     ]);
 

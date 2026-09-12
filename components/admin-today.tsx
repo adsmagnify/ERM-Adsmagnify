@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { StatusPill } from "@/components/status-pill";
 import { dayDisplayStatus } from "@/lib/attendance-display";
-import type { Attendance, Profile } from "@/lib/database.types";
+import type { Attendance, DelayNotice, Profile } from "@/lib/database.types";
 import {
   formatIstDate,
   formatIstTime,
@@ -12,6 +12,7 @@ import {
 type AdminTodayProps = {
   people: Profile[];
   attendance: Attendance[];
+  delays?: DelayNotice[];
 };
 
 const statusRank = {
@@ -29,7 +30,11 @@ function hoursLabel(row: Attendance | null) {
   return `${formatWorkedHours(row.clock_in, new Date().toISOString())} so far`;
 }
 
-export function AdminToday({ people, attendance }: AdminTodayProps) {
+export function AdminToday({
+  people,
+  attendance,
+  delays = [],
+}: AdminTodayProps) {
   const today = todayIstDate();
   const employees = people.filter((person) => person.role === "employee");
 
@@ -40,9 +45,14 @@ export function AdminToday({ people, attendance }: AdminTodayProps) {
           (item) => item.user_id === person.id && item.work_date === today
         ) ?? null;
       const display = dayDisplayStatus(attendanceRow);
+      const delay =
+        delays.find(
+          (item) => item.user_id === person.id && item.work_date === today
+        ) ?? null;
       return {
         person,
         attendance: attendanceRow,
+        delay,
         name: person.full_name?.trim() || person.email || "Employee",
         ...display,
       };
@@ -115,6 +125,11 @@ export function AdminToday({ people, attendance }: AdminTodayProps) {
                     <p className="mt-1 truncate text-sm text-muted-foreground">
                       {row.person.email}
                     </p>
+                    {row.delay ? (
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        Delay · ETA {formatIstTime(row.delay.eta)}
+                      </p>
+                    ) : null}
                     {row.status === "Half day" && row.reason ? (
                       <p className="mt-1 text-sm text-[#b5432f]">{row.reason}</p>
                     ) : null}

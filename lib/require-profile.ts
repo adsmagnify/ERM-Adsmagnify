@@ -17,7 +17,9 @@ export const requireProfile = cache(async () => {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, full_name, email, role, created_at")
+    .select(
+      "id, full_name, email, role, created_at, clock_in_by, clock_out_after, wednesday_clock_in_by"
+    )
     .eq("id", userId)
     .maybeSingle();
 

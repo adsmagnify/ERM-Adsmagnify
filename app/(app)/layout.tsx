@@ -1,4 +1,5 @@
 import { AppHeader } from "@/components/app-header";
+import { SessionKeepAlive } from "@/components/session-keep-alive";
 import { SetupNeeded } from "@/components/setup-needed";
 import { requireProfile } from "@/lib/require-profile";
 import { getSupabaseEnv } from "@/lib/supabase/env";
@@ -16,6 +17,7 @@ export default async function AppShellLayout({
 
   return (
     <div className="flex min-h-full flex-col">
+      <SessionKeepAlive />
       <AppHeader
         name={profile?.full_name}
         email={profile?.email ?? user.email}

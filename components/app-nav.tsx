@@ -18,6 +18,12 @@ export function AppNav({ isAdmin }: { isAdmin: boolean }) {
           <Tab href="/admin" active={pathname === "/admin"}>
             Team
           </Tab>
+          <Tab
+            href="/admin/delays"
+            active={pathname.startsWith("/admin/delays")}
+          >
+            Delay
+          </Tab>
           <Tab href="/tasks" active={pathname.startsWith("/tasks")}>
             Tasks
           </Tab>
@@ -32,6 +38,9 @@ export function AppNav({ isAdmin }: { isAdmin: boolean }) {
         <>
           <Tab href="/" active={pathname === "/"}>
             Clock
+          </Tab>
+          <Tab href="/delay" active={pathname.startsWith("/delay")}>
+            Delay
           </Tab>
           <Tab href="/tasks" active={pathname.startsWith("/tasks")}>
             Tasks
@@ -56,7 +65,7 @@ function Tab({
       href={href}
       prefetch
       className={cn(
-        "flex h-12 flex-1 items-center justify-center rounded-2xl text-base font-medium transition-colors",
+        "flex h-12 flex-1 items-center justify-center rounded-2xl text-sm font-medium transition-colors sm:text-base",
         active
           ? "bg-foreground text-white"
           : "text-muted-foreground hover:text-foreground"

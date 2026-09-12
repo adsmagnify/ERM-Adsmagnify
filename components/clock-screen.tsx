@@ -1,30 +1,54 @@
+import Link from "next/link";
 import { dayDisplayStatus } from "@/lib/attendance-display";
-import type { Attendance } from "@/lib/database.types";
+import type { Attendance, DelayNotice } from "@/lib/database.types";
 import { ClockButtons } from "@/components/clock-buttons";
 import { LiveClock } from "@/components/live-clock";
 import { StatusPill } from "@/components/status-pill";
+import {
+  clockRuleCopy,
+  DEFAULT_SCHEDULE,
+  type WorkSchedule,
+} from "@/lib/schedule";
 import {
   formatIstDate,
   formatIstTime,
   formatWorkedHours,
   recentDateRange,
+  todayIstDate,
 } from "@/lib/time";
 
 type ClockScreenProps = {
   today: Attendance | null;
   recent: Attendance[];
+  schedule?: WorkSchedule;
+  delayNotice?: DelayNotice | null;
 };
 
-function displayStatus(today: Attendance | null) {
-  const { status, reason } = dayDisplayStatus(today);
+function displayStatus(
+  today: Attendance | null,
+  schedule: WorkSchedule,
+  delayNotice?: DelayNotice | null
+) {
+  if (!today?.clock_in && delayNotice) {
+    return {
+      status: "Not started" as const,
+      reason: `Delay sent. Clock in by ${formatIstTime(delayNotice.eta)} for a full day.`,
+    };
+  }
+  const { status, reason } = dayDisplayStatus(today, schedule);
   if (status === "Not started") {
     return { status, reason: "Clock in to start your day." };
   }
   return { status, reason };
 }
 
-export function ClockScreen({ today, recent }: ClockScreenProps) {
-  const { status, reason } = displayStatus(today);
+export function ClockScreen({
+  today,
+  recent,
+  schedule = DEFAULT_SCHEDULE,
+  delayNotice = null,
+}: ClockScreenProps) {
+  const { status, reason } = displayStatus(today, schedule, delayNotice);
   const byDate = new Map(recent.map((row) => [row.work_date, row]));
   const days = recentDateRange(8);
 
@@ -42,9 +66,22 @@ export function ClockScreen({ today, recent }: ClockScreenProps) {
           outTime={today?.clock_out ? formatIstTime(today.clock_out) : "Not yet"}
         />
         <p className="text-center text-sm leading-relaxed text-muted-foreground">
-          Clock in by 10:45 AM IST for a full day.
-          <br className="sm:hidden" /> Clock out at or after 7:00 PM IST.
+          {clockRuleCopy(schedule, todayIstDate())}
         </p>
+        <p className="text-center text-sm text-muted-foreground">
+          Clock in and out from the Churchgate office, on office Wi-Fi or ethernet.
+        </p>
+        {!today?.clock_in ? (
+          <p className="text-center text-sm text-muted-foreground">
+            Running late?{" "}
+            <Link
+              href="/delay"
+              className="font-medium text-foreground underline decoration-border underline-offset-4 hover:decoration-foreground"
+            >
+              Open Delay
+            </Link>
+          </p>
+        ) : null}
       </div>
 
       <section className="rounded-[20px] border border-border bg-white px-6 py-6 sm:px-8">

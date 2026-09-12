@@ -9,6 +9,9 @@ export type Profile = {
   full_name: string | null;
   email: string | null;
   role: UserRole;
+  clock_in_by: string;
+  clock_out_after: string;
+  wednesday_clock_in_by: string | null;
   created_at: string;
 };
 
@@ -20,6 +23,35 @@ export type Attendance = {
   clock_out: string | null;
   status: DayStatus | null;
   status_reason: StatusReason | null;
+  created_at: string;
+  clock_in_lat: number | null;
+  clock_in_lng: number | null;
+  clock_in_accuracy: number | null;
+  clock_in_ip: string | null;
+  clock_out_lat: number | null;
+  clock_out_lng: number | null;
+  clock_out_accuracy: number | null;
+  clock_out_ip: string | null;
+};
+
+export type OfficeSettingsRow = {
+  id: number;
+  label: string;
+  address: string;
+  lat: number;
+  lng: number;
+  radius_m: number;
+  allowed_ips: string[];
+  updated_at: string;
+};
+
+export type DelayNotice = {
+  id: string;
+  user_id: string;
+  work_date: string;
+  eta: string;
+  reason: string;
+  message: string;
   created_at: string;
 };
 
@@ -43,12 +75,18 @@ export type Database = {
           full_name?: string | null;
           email?: string | null;
           role?: UserRole;
+          clock_in_by?: string;
+          clock_out_after?: string;
+          wednesday_clock_in_by?: string | null;
           created_at?: string;
         };
         Update: {
           full_name?: string | null;
           email?: string | null;
           role?: UserRole;
+          clock_in_by?: string;
+          clock_out_after?: string;
+          wednesday_clock_in_by?: string | null;
         };
         Relationships: [];
       };
@@ -63,11 +101,33 @@ export type Database = {
           status?: DayStatus | null;
           status_reason?: StatusReason | null;
           created_at?: string;
+          clock_in_lat?: number | null;
+          clock_in_lng?: number | null;
+          clock_in_accuracy?: number | null;
+          clock_in_ip?: string | null;
         };
         Update: {
           clock_out?: string | null;
           status?: DayStatus | null;
           status_reason?: StatusReason | null;
+          clock_out_lat?: number | null;
+          clock_out_lng?: number | null;
+          clock_out_accuracy?: number | null;
+          clock_out_ip?: string | null;
+        };
+        Relationships: [];
+      };
+      office_settings: {
+        Row: OfficeSettingsRow;
+        Insert: OfficeSettingsRow;
+        Update: {
+          label?: string;
+          address?: string;
+          lat?: number;
+          lng?: number;
+          radius_m?: number;
+          allowed_ips?: string[];
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -87,6 +147,24 @@ export type Database = {
           priority?: TaskPriority;
           status?: TaskStatus;
           due_date?: string | null;
+        };
+        Relationships: [];
+      };
+      delay_notices: {
+        Row: DelayNotice;
+        Insert: {
+          id?: string;
+          user_id: string;
+          work_date: string;
+          eta: string;
+          reason: string;
+          message: string;
+          created_at?: string;
+        };
+        Update: {
+          eta?: string;
+          reason?: string;
+          message?: string;
         };
         Relationships: [];
       };

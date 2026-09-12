@@ -4,6 +4,7 @@ import { useTransition, type ReactNode } from "react";
 import { ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { toast } from "sonner";
 import { clockIn, clockOut } from "@/app/actions/attendance";
+import { getCurrentFix } from "@/lib/geolocation";
 import { cn } from "@/lib/utils";
 
 type ClockButtonsProps = {
@@ -23,23 +24,37 @@ export function ClockButtons({
 
   function onClockIn() {
     startTransition(async () => {
-      const result = await clockIn();
-      if (result.error) {
-        toast.error(result.error);
-        return;
+      try {
+        const fix = await getCurrentFix();
+        const result = await clockIn(fix);
+        if (result.error) {
+          toast.error(result.error);
+          return;
+        }
+        toast.success("Clocked in");
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "Could not clock in."
+        );
       }
-      toast.success("Clocked in");
     });
   }
 
   function onClockOut() {
     startTransition(async () => {
-      const result = await clockOut();
-      if (result.error) {
-        toast.error(result.error);
-        return;
+      try {
+        const fix = await getCurrentFix();
+        const result = await clockOut(fix);
+        if (result.error) {
+          toast.error(result.error);
+          return;
+        }
+        toast.success("Clocked out");
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "Could not clock out."
+        );
       }
-      toast.success("Clocked out");
     });
   }
 

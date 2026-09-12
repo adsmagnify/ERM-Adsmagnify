@@ -42,6 +42,37 @@ export function formatIstTime(iso: string | null) {
   }).format(new Date(iso));
 }
 
+export function istDateTime(isoDate: string, time: string) {
+  const hhmmss = time.length === 5 ? `${time}:00` : time;
+  return new Date(`${isoDate}T${hhmmss}+05:30`);
+}
+
+export function istNowTime() {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: TIMEZONE,
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(new Date());
+}
+
+export function timeToMinutes(value: string) {
+  const [hourRaw, minuteRaw] = value.split(":");
+  return Number(hourRaw) * 60 + Number(minuteRaw);
+}
+
+export function minutesToTime(total: number) {
+  const wrapped = ((total % (24 * 60)) + 24 * 60) % (24 * 60);
+  const hours = Math.floor(wrapped / 60);
+  const minutes = wrapped % 60;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
+
+export function defaultDelayEta(clockInBy: string, nowTime = istNowTime()) {
+  const start = Math.max(timeToMinutes(clockInBy), timeToMinutes(nowTime));
+  return minutesToTime(start + 10);
+}
+
 export function formatWorkedHours(clockIn: string | null, clockOut: string | null) {
   if (!clockIn || !clockOut) return "—";
   const ms = new Date(clockOut).getTime() - new Date(clockIn).getTime();

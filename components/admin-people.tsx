@@ -3,14 +3,25 @@ import {
   RoleSwitch,
 } from "@/components/admin-team-actions";
 import { CreateEmployeeForm } from "@/components/create-employee-form";
+import { OfficeNetworkCard } from "@/components/office-network-card";
 import type { Profile } from "@/lib/database.types";
+import type { OfficeSettings } from "@/lib/office";
+import {
+  isDefaultSchedule,
+  scheduleFromProfile,
+  scheduleSummary,
+} from "@/lib/schedule";
 
 export function AdminPeople({
   people,
   currentUserId,
+  office,
+  currentIp,
 }: {
   people: Profile[];
   currentUserId: string;
+  office: OfficeSettings | null;
+  currentIp: string | null;
 }) {
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 pb-20 pt-10 sm:px-10 lg:px-12">
@@ -24,6 +35,8 @@ export function AdminPeople({
 
       <CreateEmployeeForm />
 
+      <OfficeNetworkCard office={office} currentIp={currentIp} />
+
       <section>
         <h2 className="font-heading text-xl font-medium">Everyone</h2>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -33,6 +46,7 @@ export function AdminPeople({
           {people.map((person) => {
             const name =
               person.full_name?.trim() || person.email || "Employee";
+            const schedule = scheduleFromProfile(person);
             return (
               <li
                 key={person.id}
@@ -46,6 +60,13 @@ export function AdminPeople({
                     <p className="mt-1 truncate text-sm text-muted-foreground">
                       {person.email}
                     </p>
+                    {person.role === "employee" ? (
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {isDefaultSchedule(schedule)
+                          ? "10:45 AM – 7:00 PM"
+                          : scheduleSummary(schedule)}
+                      </p>
+                    ) : null}
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <RoleSwitch
