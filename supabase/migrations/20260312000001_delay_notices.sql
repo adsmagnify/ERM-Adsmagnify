@@ -122,3 +122,5 @@ begin
   return next;
 end;
 $$;
+
+notify pgrst, 'reload schema';

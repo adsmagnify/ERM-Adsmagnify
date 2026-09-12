@@ -5,11 +5,7 @@ import { toast } from "sonner";
 import { submitDelayNotice } from "@/app/actions/delay";
 import { Field, fieldInputClass, SubmitButton } from "@/components/form-field";
 import type { DelayNotice } from "@/lib/database.types";
-import {
-  delayComposeUrls,
-  DELAY_EMAIL_CC,
-  DELAY_EMAIL_TO,
-} from "@/lib/delay-email";
+import { DELAY_EMAIL_CC, DELAY_EMAIL_TO } from "@/lib/delay-email";
 import {
   clockInByForDate,
   formatClockTime,
@@ -25,8 +21,6 @@ import { cn } from "@/lib/utils";
 
 export function DelayNoticeForm({
   schedule,
-  employeeName,
-  employeeEmail,
   notice,
 }: {
   schedule: WorkSchedule;
@@ -42,22 +36,6 @@ export function DelayNoticeForm({
     notice ? formatTimeInput(notice.eta) : defaultDelayEta(clockInBy)
   );
 
-  function openEmail(reason: string, message: string, etaValue: string) {
-    const compose = delayComposeUrls({
-      name: employeeName,
-      email: employeeEmail,
-      workDate: today,
-      clockInBy,
-      etaLabel: formatClockTime(`${etaValue}:00`),
-      reason,
-      message,
-    });
-    const opened = window.open(compose.gmail, "_blank", "noopener,noreferrer");
-    if (!opened) {
-      window.location.href = compose.mailto;
-    }
-  }
-
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
@@ -71,15 +49,13 @@ export function DelayNoticeForm({
       return;
     }
 
-    openEmail(reason, message, etaValue);
-
     startTransition(async () => {
       const result = await submitDelayNotice(formData);
       if (result.error) {
         toast.error(result.error);
         return;
       }
-      toast.success("Send the email, then clock in by your ETA.");
+      toast.success("Delay email sent. Clock in by your ETA.");
     });
   }
 
@@ -101,19 +77,6 @@ export function DelayNoticeForm({
           <br />
           Cc: {DELAY_EMAIL_CC.join(", ")}
         </p>
-        <button
-          type="button"
-          onClick={() =>
-            openEmail(
-              notice.reason,
-              notice.message,
-              formatTimeInput(notice.eta)
-            )
-          }
-          className="mt-5 h-12 cursor-pointer rounded-2xl border border-border px-6 text-base font-medium text-foreground transition-colors hover:bg-muted"
-        >
-          Open email again
-        </button>
       </section>
     );
   }
@@ -167,11 +130,11 @@ export function DelayNoticeForm({
         </Field>
       </div>
       <p className="mt-4 text-sm text-muted-foreground">
-        Opens Gmail to {DELAY_EMAIL_TO}, with {DELAY_EMAIL_CC[0]} and{" "}
-        {DELAY_EMAIL_CC[1]} on cc. Send that email, then clock in.
+        Emails {DELAY_EMAIL_TO}, with {DELAY_EMAIL_CC[0]} and {DELAY_EMAIL_CC[1]}{" "}
+        on cc.
       </p>
       <SubmitButton disabled={pending} className="mt-5 w-full sm:w-auto">
-        {pending ? "Saving…" : "Send delay email"}
+        {pending ? "Sending…" : "Send delay email"}
       </SubmitButton>
     </form>
   );

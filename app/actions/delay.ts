@@ -2,10 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { getAuthUserId } from "@/lib/auth-user";
-import {
-  delayComposeUrls,
-  type DelayEmailInput,
-} from "@/lib/delay-email";
+import { sendDelayEmail } from "@/lib/smtp";
+import { type DelayEmailInput } from "@/lib/delay-email";
 import { clockInByForDate, scheduleFromProfile } from "@/lib/schedule";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -17,8 +15,6 @@ import {
 export type DelayActionState = {
   error?: string;
   success?: boolean;
-  gmail?: string;
-  mailto?: string;
 };
 
 function formString(formData: FormData, key: string) {
@@ -96,6 +92,12 @@ export async function submitDelayNotice(
   );
 
   if (error) {
+    if (/delay_notices/i.test(error.message) && /schema cache/i.test(error.message)) {
+      return {
+        error:
+          "Delay notices are not set up in the database yet. Run supabase/migrations/20260312000001_delay_notices.sql in the Supabase SQL Editor, then try again.",
+      };
+    }
     return { error: error.message };
   }
 
@@ -110,16 +112,15 @@ export async function submitDelayNotice(
     reason,
     message,
   };
-  const compose = delayComposeUrls(composeInput);
+  const sent = await sendDelayEmail(composeInput);
+  if (sent.error) {
+    return { error: sent.error };
+  }
 
   revalidatePath("/");
   revalidatePath("/delay");
   revalidatePath("/admin");
   revalidatePath("/admin/delays");
 
-  return {
-    success: true,
-    gmail: compose.gmail,
-    mailto: compose.mailto,
-  };
+  return { success: true };
 }
