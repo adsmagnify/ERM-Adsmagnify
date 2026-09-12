@@ -24,6 +24,7 @@ export type Attendance = {
   status: DayStatus | null;
   status_reason: StatusReason | null;
   status_overridden: boolean;
+  auto_clocked_out?: boolean;
   created_at: string;
   clock_in_lat: number | null;
   clock_in_lng: number | null;
@@ -116,6 +117,7 @@ export type Database = {
           clock_out_lng?: number | null;
           clock_out_accuracy?: number | null;
           clock_out_ip?: string | null;
+          auto_clocked_out?: boolean;
         };
         Relationships: [];
       };
@@ -182,6 +184,10 @@ export type Database = {
       clock_out: {
         Args: Record<PropertyKey, never>;
         Returns: Attendance;
+      };
+      close_open_attendance: {
+        Args: Record<PropertyKey, never>;
+        Returns: number;
       };
     };
     Enums: {

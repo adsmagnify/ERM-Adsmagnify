@@ -7,6 +7,7 @@ import {
   getClientPublicIp,
   loadOfficeSettings,
 } from "@/lib/office-server";
+import { closeOpenAttendance } from "@/lib/close-open-attendance";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { todayIstDate } from "@/lib/time";
@@ -62,6 +63,7 @@ export async function clockIn(payload: ClockPayload): Promise<ActionResult> {
   }
 
   const admin = createAdminClient();
+  await closeOpenAttendance();
   const { error } = await admin.from("attendance").insert({
     user_id: ready.userId,
     work_date: todayIstDate(),

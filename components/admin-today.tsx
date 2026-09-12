@@ -198,6 +198,9 @@ function PersonCell({ row }: { row: TeamRow }) {
       {row.attendance?.status_overridden ? (
         <p className="mt-1 text-sm text-muted-foreground">Set by admin</p>
       ) : null}
+      {row.attendance?.auto_clocked_out ? (
+        <p className="mt-1 text-sm text-muted-foreground">Auto out · 9:00 PM</p>
+      ) : null}
     </div>
   );
 }

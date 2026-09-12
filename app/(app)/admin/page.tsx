@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { AdminToday } from "@/components/admin-today";
 import type { Attendance, DelayNotice, Profile } from "@/lib/database.types";
+import { closeOpenAttendance } from "@/lib/close-open-attendance";
 import { requireProfile } from "@/lib/require-profile";
 import { todayIstDate } from "@/lib/time";
 
@@ -12,6 +13,8 @@ export default async function AdminPage() {
   if (!isAdmin) {
     redirect("/");
   }
+
+  await closeOpenAttendance();
 
   const today = todayIstDate();
 
@@ -26,7 +29,7 @@ export default async function AdminPage() {
       supabase
         .from("attendance")
         .select(
-          "id, user_id, work_date, clock_in, clock_out, status, status_reason, status_overridden"
+          "id, user_id, work_date, clock_in, clock_out, status, status_reason, status_overridden, auto_clocked_out"
         )
         .eq("work_date", today),
       supabase
@@ -45,10 +48,11 @@ export default async function AdminPage() {
       .eq("work_date", today);
     attendance = ((fallback.data ?? []) as Omit<
       Attendance,
-      "status_overridden"
+      "status_overridden" | "auto_clocked_out"
     >[]).map((row) => ({
       ...row,
       status_overridden: false,
+      auto_clocked_out: false,
     })) as Attendance[];
   }
 

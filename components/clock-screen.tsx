@@ -63,13 +63,18 @@ export function ClockScreen({
           clockedIn={Boolean(today?.clock_in)}
           clockedOut={Boolean(today?.clock_out)}
           inTime={today?.clock_in ? formatIstTime(today.clock_in) : "Not yet"}
-          outTime={today?.clock_out ? formatIstTime(today.clock_out) : "Not yet"}
+          outTime={
+            today?.clock_out
+              ? `${formatIstTime(today.clock_out)}${today.auto_clocked_out ? " (auto)" : ""}`
+              : "Not yet"
+          }
         />
         <p className="text-center text-sm leading-relaxed text-muted-foreground">
           {clockRuleCopy(schedule, todayIstDate())}
         </p>
         <p className="text-center text-sm text-muted-foreground">
           Clock in and out from the Churchgate office, on office Wi-Fi or ethernet.
+          If you forget to clock out, the day closes at 9:00 PM IST.
         </p>
         {!today?.clock_in ? (
           <p className="text-center text-sm text-muted-foreground">
@@ -88,7 +93,14 @@ export function ClockScreen({
         <h2 className="font-heading text-lg font-semibold">Today</h2>
         <dl className="mt-5 grid grid-cols-1 gap-6 sm:grid-cols-3">
           <SummaryItem label="In time" value={formatIstTime(today?.clock_in ?? null)} />
-          <SummaryItem label="Out time" value={formatIstTime(today?.clock_out ?? null)} />
+          <SummaryItem
+            label="Out time"
+            value={
+              today?.clock_out
+                ? `${formatIstTime(today.clock_out)}${today.auto_clocked_out ? " (auto)" : ""}`
+                : formatIstTime(null)
+            }
+          />
           <SummaryItem
             label="Worked hours"
             value={formatWorkedHours(today?.clock_in ?? null, today?.clock_out ?? null)}
@@ -115,6 +127,7 @@ export function ClockScreen({
                       In {formatIstTime(row?.clock_in ?? null)}
                       <span className="mx-2 text-border">·</span>
                       Out {formatIstTime(row?.clock_out ?? null)}
+                      {row?.auto_clocked_out ? " (auto)" : ""}
                       <span className="mx-2 text-border">·</span>
                       {formatWorkedHours(row?.clock_in ?? null, row?.clock_out ?? null)}
                     </p>
