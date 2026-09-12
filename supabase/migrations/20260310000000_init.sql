@@ -126,7 +126,7 @@ as $$
 declare
   in_local timestamp;
   out_local timestamp;
-  work_date date;
+  v_work_date date;
   in_by time;
   out_after time;
   late boolean;
@@ -142,7 +142,7 @@ begin
 
   in_local := p_clock_in at time zone 'Asia/Kolkata';
   out_local := p_clock_out at time zone 'Asia/Kolkata';
-  work_date := in_local::date;
+  v_work_date := in_local::date;
 
   select
     case
@@ -164,14 +164,14 @@ begin
   end if;
 
   late := in_local::time > in_by;
-  left_early := out_local < (work_date::timestamp + out_after);
+  left_early := out_local < (v_work_date::timestamp + out_after);
 
   if late then
     select exists (
       select 1
       from public.delay_notices d
       where d.user_id = p_user_id
-        and d.work_date = work_date
+        and d.work_date = v_work_date
         and p_clock_in <= d.eta
     )
     into delay_covers;

@@ -15,7 +15,7 @@ export default async function AdminPage() {
 
   const today = todayIstDate();
 
-  const [{ data: people }, { data: attendance }, { data: delays }] =
+  const [{ data: people }, attendanceResult, { data: delays }] =
     await Promise.all([
       supabase
         .from("profiles")
@@ -26,7 +26,7 @@ export default async function AdminPage() {
       supabase
         .from("attendance")
         .select(
-          "id, user_id, work_date, clock_in, clock_out, status, status_reason"
+          "id, user_id, work_date, clock_in, clock_out, status, status_reason, status_overridden"
         )
         .eq("work_date", today),
       supabase
@@ -34,6 +34,17 @@ export default async function AdminPage() {
         .select("id, user_id, work_date, eta, reason, message, created_at")
         .eq("work_date", today),
     ]);
+
+  let attendance = attendanceResult.data;
+  if (attendanceResult.error) {
+    const fallback = await supabase
+      .from("attendance")
+      .select(
+        "id, user_id, work_date, clock_in, clock_out, status, status_reason"
+      )
+      .eq("work_date", today);
+    attendance = fallback.data;
+  }
 
   return (
     <main>

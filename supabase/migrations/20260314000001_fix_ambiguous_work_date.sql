@@ -1,44 +1,5 @@
--- Delay notices: send a late email, then clock in by ETA for a full day.
+-- Fix: work_date was both a variable and a column, so clock-out failed.
 -- Safe to re-run in the SQL editor.
-
-create table if not exists public.delay_notices (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references public.profiles (id) on delete cascade,
-  work_date date not null,
-  eta timestamptz not null,
-  reason text not null check (char_length(trim(reason)) > 0),
-  message text not null check (char_length(trim(message)) > 0),
-  created_at timestamptz not null default now(),
-  unique (user_id, work_date)
-);
-
-create index if not exists delay_notices_work_date_idx
-  on public.delay_notices (work_date);
-
-alter table public.delay_notices enable row level security;
-
-grant select, insert, update on table public.delay_notices to authenticated;
-revoke all on table public.delay_notices from anon;
-
-drop policy if exists delay_notices_select on public.delay_notices;
-drop policy if exists delay_notices_insert on public.delay_notices;
-drop policy if exists delay_notices_update on public.delay_notices;
-drop policy if exists delay_notices_select_own on public.delay_notices;
-drop policy if exists delay_notices_insert_own on public.delay_notices;
-drop policy if exists delay_notices_update_own on public.delay_notices;
-
-create policy delay_notices_select
-  on public.delay_notices for select to authenticated
-  using (user_id = (select auth.uid()) or (select private.is_admin()));
-
-create policy delay_notices_insert
-  on public.delay_notices for insert to authenticated
-  with check (user_id = (select auth.uid()));
-
-create policy delay_notices_update
-  on public.delay_notices for update to authenticated
-  using (user_id = (select auth.uid()))
-  with check (user_id = (select auth.uid()));
 
 create or replace function private.evaluate_attendance(
   p_user_id uuid,
@@ -122,5 +83,3 @@ begin
   return next;
 end;
 $$;
-
-notify pgrst, 'reload schema';

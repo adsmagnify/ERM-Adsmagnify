@@ -23,6 +23,7 @@ export type Attendance = {
   clock_out: string | null;
   status: DayStatus | null;
   status_reason: StatusReason | null;
+  status_overridden: boolean;
   created_at: string;
   clock_in_lat: number | null;
   clock_in_lng: number | null;
@@ -110,6 +111,7 @@ export type Database = {
           clock_out?: string | null;
           status?: DayStatus | null;
           status_reason?: StatusReason | null;
+          status_overridden?: boolean;
           clock_out_lat?: number | null;
           clock_out_lng?: number | null;
           clock_out_accuracy?: number | null;

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AdminDayStatus } from "@/components/admin-day-status";
 import { StatusPill } from "@/components/status-pill";
 import { dayDisplayStatus } from "@/lib/attendance-display";
 import type { Attendance, DelayNotice, Profile } from "@/lib/database.types";
@@ -78,7 +79,8 @@ export function AdminToday({
         </p>
         <h2 className="font-heading mt-1 text-xl font-medium">Team today</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Who is in, who has left, and the day status.
+          Who is in, who has left, and the day status. After clock out you can
+          switch Half day and Full day.
         </p>
       </section>
 
@@ -102,53 +104,115 @@ export function AdminToday({
         </p>
       ) : (
         <section className="overflow-hidden rounded-[20px] border border-border bg-white">
-          <div className="hidden grid-cols-[minmax(0,1.5fr)_5.5rem_5.5rem_6.5rem_auto] gap-4 border-b border-border px-6 py-3 text-sm text-muted-foreground lg:grid">
-            <span>Name</span>
-            <span>In</span>
-            <span>Out</span>
-            <span>Hours</span>
-            <span className="text-right">Status</span>
-          </div>
-          <ul>
+          <ul className="lg:hidden">
             {rows.map((row, index) => (
               <li
                 key={row.person.id}
-                className={
-                  index === 0 ? undefined : "border-t border-border"
-                }
+                className={index === 0 ? "px-5 py-5" : "border-t border-border px-5 py-5"}
               >
-                <div className="grid grid-cols-1 gap-4 px-5 py-5 sm:px-6 lg:grid-cols-[minmax(0,1.5fr)_5.5rem_5.5rem_6.5rem_auto] lg:items-center lg:gap-4">
-                  <div className="min-w-0">
-                    <p className="font-heading truncate text-lg font-medium">
-                      {row.name}
-                    </p>
-                    <p className="mt-1 truncate text-sm text-muted-foreground">
-                      {row.person.email}
-                    </p>
-                    {row.delay ? (
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        Delay · ETA {formatIstTime(row.delay.eta)}
-                      </p>
-                    ) : null}
-                    {row.status === "Half day" && row.reason ? (
-                      <p className="mt-1 text-sm text-[#b5432f]">{row.reason}</p>
-                    ) : null}
-                  </div>
+                <PersonCell row={row} />
+                <div className="mt-4 flex flex-col gap-3">
                   <TimeCell label="In" value={formatIstTime(row.attendance?.clock_in ?? null)} />
                   <TimeCell label="Out" value={formatIstTime(row.attendance?.clock_out ?? null)} />
                   <TimeCell label="Hours" value={hoursLabel(row.attendance)} />
-                  <StatusPill
-                    className="items-start lg:items-end"
-                    status={row.status}
-                  />
+                  <div className="flex items-center justify-between gap-4">
+                    <p className="text-sm text-muted-foreground">Status</p>
+                    <StatusCell row={row} />
+                  </div>
                 </div>
               </li>
             ))}
           </ul>
+
+          <table className="hidden w-full table-fixed lg:table">
+            <colgroup>
+              <col />
+              <col className="w-[7.5rem]" />
+              <col className="w-[7.5rem]" />
+              <col className="w-[7.5rem]" />
+              <col className="w-[9.5rem]" />
+            </colgroup>
+            <thead>
+              <tr className="border-b border-border text-sm text-muted-foreground">
+                <th className="px-6 py-3 text-left font-normal">Name</th>
+                <th className="px-3 py-3 text-right font-normal">In</th>
+                <th className="px-3 py-3 text-right font-normal">Out</th>
+                <th className="px-3 py-3 text-right font-normal">Hours</th>
+                <th className="px-6 py-3 text-right font-normal">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {rows.map((row) => (
+                <tr key={row.person.id}>
+                  <td className="px-6 py-5 align-middle">
+                    <PersonCell row={row} />
+                  </td>
+                  <td className="px-3 py-5 text-right align-middle text-base tabular-nums">
+                    {formatIstTime(row.attendance?.clock_in ?? null)}
+                  </td>
+                  <td className="px-3 py-5 text-right align-middle text-base tabular-nums">
+                    {formatIstTime(row.attendance?.clock_out ?? null)}
+                  </td>
+                  <td className="px-3 py-5 text-right align-middle text-base tabular-nums">
+                    {hoursLabel(row.attendance)}
+                  </td>
+                  <td className="px-6 py-5 text-right align-middle">
+                    <div className="flex justify-end">
+                      <StatusCell row={row} />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </section>
       )}
     </div>
   );
+}
+
+type TeamRow = {
+  person: Profile;
+  attendance: Attendance | null;
+  delay: DelayNotice | null;
+  name: string;
+  status: "Not started" | "In progress" | "Full day" | "Half day";
+  reason: string | null;
+};
+
+function PersonCell({ row }: { row: TeamRow }) {
+  return (
+    <div className="min-w-0">
+      <p className="font-heading truncate text-lg font-medium">{row.name}</p>
+      <p className="mt-1 truncate text-sm text-muted-foreground">
+        {row.person.email}
+      </p>
+      {row.delay ? (
+        <p className="mt-1 text-sm text-muted-foreground">
+          Delay · ETA {formatIstTime(row.delay.eta)}
+        </p>
+      ) : null}
+      {row.status === "Half day" && row.reason ? (
+        <p className="mt-1 text-sm text-[#b5432f]">{row.reason}</p>
+      ) : null}
+      {row.attendance?.status_overridden ? (
+        <p className="mt-1 text-sm text-muted-foreground">Set by admin</p>
+      ) : null}
+    </div>
+  );
+}
+
+function StatusCell({ row }: { row: TeamRow }) {
+  if (
+    row.attendance?.clock_out &&
+    (row.status === "Full day" || row.status === "Half day")
+  ) {
+    return (
+      <AdminDayStatus attendanceId={row.attendance.id} status={row.status} />
+    );
+  }
+
+  return <StatusPill className="items-end" status={row.status} />;
 }
 
 function Stat({
