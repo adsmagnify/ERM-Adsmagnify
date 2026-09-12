@@ -35,7 +35,7 @@ export default async function AdminPage() {
         .eq("work_date", today),
     ]);
 
-  let attendance = attendanceResult.data;
+  let attendance = (attendanceResult.data ?? []) as Attendance[];
   if (attendanceResult.error) {
     const fallback = await supabase
       .from("attendance")
@@ -43,7 +43,13 @@ export default async function AdminPage() {
         "id, user_id, work_date, clock_in, clock_out, status, status_reason"
       )
       .eq("work_date", today);
-    attendance = fallback.data;
+    attendance = ((fallback.data ?? []) as Omit<
+      Attendance,
+      "status_overridden"
+    >[]).map((row) => ({
+      ...row,
+      status_overridden: false,
+    })) as Attendance[];
   }
 
   return (
