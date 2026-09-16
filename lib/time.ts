@@ -18,6 +18,67 @@ export function addDays(isoDate: string, days: number): string {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+export function isIsoDate(value: string | undefined | null): value is string {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split("-").map(Number);
+  const utc = new Date(Date.UTC(year, month - 1, day));
+  return (
+    utc.getUTCFullYear() === year &&
+    utc.getUTCMonth() === month - 1 &&
+    utc.getUTCDate() === day
+  );
+}
+
+export function parseWorkDate(value: string | undefined, fallback = todayIstDate()) {
+  return isIsoDate(value) ? value : fallback;
+}
+
+export function shiftMonth(isoDate: string, months: number): string {
+  const [year, month, day] = isoDate.split("-").map(Number);
+  const cursor = new Date(Date.UTC(year, month - 1 + months, 1));
+  const lastDay = new Date(
+    Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth() + 1, 0)
+  ).getUTCDate();
+  const nextDay = Math.min(day, lastDay);
+  const yyyy = cursor.getUTCFullYear();
+  const mm = String(cursor.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(nextDay).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+export function formatIstMonth(isoDate: string) {
+  const date = new Date(`${isoDate}T12:00:00+05:30`);
+  return new Intl.DateTimeFormat("en-IN", {
+    timeZone: TIMEZONE,
+    month: "long",
+    year: "numeric",
+  }).format(date);
+}
+
+export type CalendarCell = {
+  date: string;
+  inMonth: boolean;
+};
+
+export function monthCalendar(isoDate: string): CalendarCell[] {
+  const month = isoDate.slice(0, 7);
+  const monthStart = `${month}-01`;
+  const [year, monthNumber, day] = monthStart.split("-").map(Number);
+  const sundayIndex = new Date(Date.UTC(year, monthNumber - 1, day)).getUTCDay();
+  const mondayIndex = (sundayIndex + 6) % 7;
+  const gridStart = addDays(monthStart, -mondayIndex);
+
+  const cells = Array.from({ length: 42 }, (_, index) => {
+    const date = addDays(gridStart, index);
+    return { date, inMonth: date.startsWith(`${month}-`) };
+  });
+  const lastInMonth = cells.reduce(
+    (last, cell, index) => (cell.inMonth ? index : last),
+    0
+  );
+  return cells.slice(0, Math.ceil((lastInMonth + 1) / 7) * 7);
+}
+
 export function formatIstDate(
   isoDate: string,
   options?: Intl.DateTimeFormatOptions

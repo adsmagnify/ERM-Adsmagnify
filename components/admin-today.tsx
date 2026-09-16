@@ -1,5 +1,9 @@
 import Link from "next/link";
 import { AdminDayStatus } from "@/components/admin-day-status";
+import {
+  AdminMonthCalendar,
+  type DayPresence,
+} from "@/components/admin-month-calendar";
 import { StatusPill } from "@/components/status-pill";
 import { dayDisplayStatus } from "@/lib/attendance-display";
 import type { Attendance, DelayNotice, Profile } from "@/lib/database.types";
@@ -14,6 +18,8 @@ type AdminTodayProps = {
   people: Profile[];
   attendance: Attendance[];
   delays?: DelayNotice[];
+  workDate: string;
+  presence: Record<string, DayPresence>;
 };
 
 const statusRank = {
@@ -23,11 +29,12 @@ const statusRank = {
   "Not started": 3,
 } as const;
 
-function hoursLabel(row: Attendance | null) {
+function hoursLabel(row: Attendance | null, workDate: string) {
   if (!row?.clock_in) return "—";
   if (row.clock_out) {
     return formatWorkedHours(row.clock_in, row.clock_out);
   }
+  if (workDate !== todayIstDate()) return "In progress";
   return `${formatWorkedHours(row.clock_in, new Date().toISOString())} so far`;
 }
 
@@ -35,20 +42,23 @@ export function AdminToday({
   people,
   attendance,
   delays = [],
+  workDate,
+  presence,
 }: AdminTodayProps) {
   const today = todayIstDate();
+  const viewingToday = workDate === today;
   const employees = people.filter((person) => person.role === "employee");
 
   const rows = employees
     .map((person) => {
       const attendanceRow =
         attendance.find(
-          (item) => item.user_id === person.id && item.work_date === today
+          (item) => item.user_id === person.id && item.work_date === workDate
         ) ?? null;
       const display = dayDisplayStatus(attendanceRow);
       const delay =
         delays.find(
-          (item) => item.user_id === person.id && item.work_date === today
+          (item) => item.user_id === person.id && item.work_date === workDate
         ) ?? null;
       return {
         person,
@@ -75,21 +85,32 @@ export function AdminToday({
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 pb-20 pt-10 sm:px-10 lg:px-12">
       <section>
         <p className="text-sm text-muted-foreground">
-          {formatIstDate(today, { weekday: "long", month: "long" })}
+          {formatIstDate(workDate, { weekday: "long", month: "long" })}
         </p>
-        <h2 className="font-heading mt-1 text-xl font-medium">Team today</h2>
+        <h2 className="font-heading mt-1 text-xl font-medium">
+          {viewingToday ? "Team today" : "Team"}
+        </h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Who is in, who has left, and the day status. After clock out you can
-          switch Half day and Full day.
+          Open any date for in and out times. After clock out you can switch
+          Half day and Full day.
         </p>
       </section>
 
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label="In office" value={counts.inOffice} />
-        <Stat label="Not in yet" value={counts.notStarted} />
-        <Stat label="Full day" value={counts.fullDay} />
-        <Stat label="Half day" value={counts.halfDay} tone="warn" />
-      </section>
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] xl:items-start">
+        <AdminMonthCalendar workDate={workDate} presence={presence} />
+        <section className="grid grid-cols-2 gap-3">
+          <Stat
+            label={viewingToday ? "In office" : "In progress"}
+            value={counts.inOffice}
+          />
+          <Stat
+            label={viewingToday ? "Not in yet" : "No clock-in"}
+            value={counts.notStarted}
+          />
+          <Stat label="Full day" value={counts.fullDay} />
+          <Stat label="Half day" value={counts.halfDay} tone="warn" />
+        </section>
+      </div>
 
       {rows.length === 0 ? (
         <p className="rounded-[20px] border border-border bg-white px-6 py-10 text-sm text-muted-foreground">
@@ -114,7 +135,7 @@ export function AdminToday({
                 <div className="mt-4 flex flex-col gap-3">
                   <TimeCell label="In" value={formatIstTime(row.attendance?.clock_in ?? null)} />
                   <TimeCell label="Out" value={formatIstTime(row.attendance?.clock_out ?? null)} />
-                  <TimeCell label="Hours" value={hoursLabel(row.attendance)} />
+                  <TimeCell label="Hours" value={hoursLabel(row.attendance, workDate)} />
                   <div className="flex items-center justify-between gap-4">
                     <p className="text-sm text-muted-foreground">Status</p>
                     <StatusCell row={row} />
@@ -154,7 +175,7 @@ export function AdminToday({
                     {formatIstTime(row.attendance?.clock_out ?? null)}
                   </td>
                   <td className="px-3 py-5 text-right align-middle text-base tabular-nums">
-                    {hoursLabel(row.attendance)}
+                    {hoursLabel(row.attendance, workDate)}
                   </td>
                   <td className="px-6 py-5 text-right align-middle">
                     <div className="flex justify-end">
