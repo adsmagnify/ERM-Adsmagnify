@@ -93,6 +93,11 @@ export function formatIstDate(
   }).format(date);
 }
 
+export function formatIstDateRange(fromDate: string, toDate: string) {
+  if (fromDate === toDate) return formatIstDate(fromDate);
+  return `${formatIstDate(fromDate)} – ${formatIstDate(toDate)}`;
+}
+
 export function formatIstTime(iso: string | null) {
   if (!iso) return "—";
   return new Intl.DateTimeFormat("en-IN", {

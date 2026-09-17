@@ -3,6 +3,9 @@ export type TaskStatus = "To Do" | "In Progress" | "Done";
 export type DayStatus = "Full day" | "Half day";
 export type StatusReason = "Late arrival" | "Left early";
 export type UserRole = "admin" | "employee";
+export type LeaveKind = "Casual" | "Sick";
+export type LeaveStatus = "Pending" | "Approved" | "Rejected";
+
 
 export type Profile = {
   id: string;
@@ -64,6 +67,17 @@ export type Task = {
   priority: TaskPriority;
   status: TaskStatus;
   due_date: string | null;
+  created_at: string;
+};
+
+export type LeaveRequest = {
+  id: string;
+  user_id: string;
+  kind: LeaveKind;
+  from_date: string;
+  to_date: string;
+  reason: string;
+  status: LeaveStatus;
   created_at: string;
 };
 
@@ -172,6 +186,23 @@ export type Database = {
         };
         Relationships: [];
       };
+      leave_requests: {
+        Row: LeaveRequest;
+        Insert: {
+          id?: string;
+          user_id: string;
+          kind: LeaveKind;
+          from_date: string;
+          to_date: string;
+          reason: string;
+          status?: LeaveStatus;
+          created_at?: string;
+        };
+        Update: {
+          status?: LeaveStatus;
+        };
+        Relationships: [];
+      }; 
     };
     Views: {
       [_ in never]: never;
@@ -194,9 +225,13 @@ export type Database = {
       task_priority: TaskPriority;
       task_status: TaskStatus;
       user_role: UserRole;
-    };
+      leave_kind: LeaveKind;
+      leave_status: LeaveStatus;
+    };  
     CompositeTypes: {
       [_ in never]: never;
     };
   };
 };
+
+

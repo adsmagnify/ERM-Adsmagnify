@@ -11,7 +11,7 @@ export function AppNav({ isAdmin }: { isAdmin: boolean }) {
   return (
     <nav
       aria-label="Primary"
-      className="flex w-full rounded-[20px] border border-border bg-white p-1.5"
+      className="flex w-full overflow-x-auto rounded-[20px] border border-border bg-white p-1.5"
     >
       {isAdmin ? (
         <>
@@ -26,6 +26,12 @@ export function AppNav({ isAdmin }: { isAdmin: boolean }) {
           </Tab>
           <Tab href="/tasks" active={pathname.startsWith("/tasks")}>
             Tasks
+          </Tab>
+          <Tab
+            href="/admin/leaves"
+            active={pathname.startsWith("/admin/leaves")}
+          >
+            Leave
           </Tab>
           <Tab
             href="/admin/people"
@@ -44,6 +50,9 @@ export function AppNav({ isAdmin }: { isAdmin: boolean }) {
           </Tab>
           <Tab href="/tasks" active={pathname.startsWith("/tasks")}>
             Tasks
+          </Tab>
+          <Tab href="/leaves" active={pathname.startsWith("/leaves")}>
+            Leave
           </Tab>
         </>
       )}
@@ -65,7 +74,7 @@ function Tab({
       href={href}
       prefetch
       className={cn(
-        "flex h-12 flex-1 items-center justify-center rounded-2xl text-sm font-medium transition-colors sm:text-base",
+        "flex h-12 flex-1 items-center justify-center rounded-2xl px-1 text-sm font-medium transition-colors sm:text-base",
         active
           ? "bg-foreground text-white"
           : "text-muted-foreground hover:text-foreground"
