@@ -19,13 +19,29 @@ function smtpConfig() {
   return { host, port, user, pass, from };
 }
 
-export async function sendDelayEmail(input: DelayEmailInput) {
+export async function sendMail({
+  to,
+  cc,
+  subject,
+  text,
+  html,
+  fromName,
+  replyTo,
+}: {
+  to: string | string[];
+  cc?: string | string[];
+  subject: string;
+  text: string;
+  html?: string;
+  fromName?: string;
+  replyTo?: string;
+}) {
   const smtp = smtpConfig();
 
   if (!smtp) {
     return {
       error:
-        "Delay email is not set up yet. Add SMTP_USER and SMTP_PASSWORD in .env.local.",
+        "Email is not set up yet. Add SMTP_USER and SMTP_PASSWORD in .env.local.",
     };
   }
 
@@ -41,12 +57,13 @@ export async function sendDelayEmail(input: DelayEmailInput) {
     });
 
     await transporter.sendMail({
-      from: `"${input.name} via Adsmagnify Clock" <${smtp.from}>`,
-      to: DELAY_EMAIL_TO,
-      cc: [...DELAY_EMAIL_CC],
-      replyTo: input.email || undefined,
-      subject: delayEmailSubject(input),
-      text: delayEmailBody(input),
+      from: `"${fromName || "Adsmagnify Clock"}" <${smtp.from}>`,
+      to,
+      cc,
+      replyTo: replyTo || undefined,
+      subject,
+      text,
+      html,
     });
 
     return {};
@@ -60,4 +77,15 @@ export async function sendDelayEmail(input: DelayEmailInput) {
     }
     return { error: message };
   }
+}
+
+export async function sendDelayEmail(input: DelayEmailInput) {
+  return sendMail({
+    to: DELAY_EMAIL_TO,
+    cc: [...DELAY_EMAIL_CC],
+    subject: delayEmailSubject(input),
+    text: delayEmailBody(input),
+    fromName: `${input.name} via Adsmagnify Clock`,
+    replyTo: input.email || undefined,
+  });
 }

@@ -4,6 +4,7 @@ import {
   AdminMonthCalendar,
   type DayPresence,
 } from "@/components/admin-month-calendar";
+import { SendDailyReportButton } from "@/components/send-daily-report-button";
 import { StatusPill } from "@/components/status-pill";
 import { dayDisplayStatus } from "@/lib/attendance-display";
 import type { Attendance, DelayNotice, Profile } from "@/lib/database.types";
@@ -87,18 +88,21 @@ export function AdminToday({
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 pb-20 pt-10 sm:px-10 lg:px-12">
-      <section>
-        <p className="text-sm text-muted-foreground">
-          {formatIstDate(workDate, { weekday: "long", month: "long" })}
-        </p>
-        <h2 className="font-heading mt-1 text-xl font-medium">
-          {viewingToday ? "Team today" : "Team"}
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {offDay
-            ? weeklyOffReason(workDate)
-            : "Open any date for in and out times. After clock out you can switch Half day and Full day."}
-        </p>
+      <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-sm text-muted-foreground">
+            {formatIstDate(workDate, { weekday: "long", month: "long" })}
+          </p>
+          <h2 className="font-heading mt-1 text-xl font-medium">
+            {viewingToday ? "Team today" : "Team"}
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {offDay
+              ? weeklyOffReason(workDate)
+              : "Open any date for in and out times. After clock out you can switch Half day and Full day."}
+          </p>
+        </div>
+        <SendDailyReportButton workDate={workDate} />
       </section>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] xl:items-start">
