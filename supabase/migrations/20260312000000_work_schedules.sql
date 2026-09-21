@@ -1,9 +1,11 @@
 -- Per-person work hours. Default remains 10:45 AM – 7:00 PM IST.
--- Sneha: 3:30 PM – 7:00 PM, Wednesdays 4:30 PM – 7:00 PM.
--- Aditya: 2:00 PM – 6:00 PM.
+-- Sneha: 3:45 PM – 7:00 PM, Wednesdays 4:30 PM – 7:00 PM.
+-- Aditya: 2:15 PM – 6:00 PM.
 -- Safe to re-run in the SQL editor.
 -- If you re-run this after office presence is enabled, also re-run
 -- 20260313000000_office_presence.sql so clock in stays locked to the office.
+-- Then re-run later migrations (status override, auto clock-out) so
+-- attendance_guard stays current.
 
 alter table public.profiles
   add column if not exists clock_in_by time not null default time '10:45:00',
@@ -168,7 +170,7 @@ create trigger protect_profile_schedule
 
 update public.profiles
 set
-  clock_in_by = time '15:30:00',
+  clock_in_by = time '15:45:00',
   clock_out_after = time '19:00:00',
   wednesday_clock_in_by = time '16:30:00'
 where full_name ilike '%sneha%'
@@ -176,7 +178,7 @@ where full_name ilike '%sneha%'
 
 update public.profiles
 set
-  clock_in_by = time '14:00:00',
+  clock_in_by = time '14:15:00',
   clock_out_after = time '18:00:00',
   wednesday_clock_in_by = null
 where full_name ilike '%aditya%'

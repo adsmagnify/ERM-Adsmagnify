@@ -67,6 +67,25 @@ export function isDefaultSchedule(schedule: WorkSchedule) {
   );
 }
 
+export function scheduleForNewEmployee(fullName: string, email: string) {
+  const haystack = `${fullName} ${email}`.toLowerCase();
+  if (haystack.includes("sneha")) {
+    return {
+      clock_in_by: "15:45:00",
+      clock_out_after: "19:00:00",
+      wednesday_clock_in_by: "16:30:00",
+    };
+  }
+  if (haystack.includes("aditya")) {
+    return {
+      clock_in_by: "14:15:00",
+      clock_out_after: "18:00:00",
+      wednesday_clock_in_by: null,
+    };
+  }
+  return {};
+}
+
 export function clockRuleCopy(schedule: WorkSchedule, isoDate: string) {
   const todayIn = formatClockTime(clockInByForDate(schedule, isoDate));
   const out = formatClockTime(schedule.clock_out_after);

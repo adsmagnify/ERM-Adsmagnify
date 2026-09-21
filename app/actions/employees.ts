@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getAuthUserId } from "@/lib/auth-user";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { scheduleForNewEmployee } from "@/lib/schedule";
 
 export type CreateEmployeeState = {
   error?: string;
@@ -72,6 +73,7 @@ export async function createEmployee(
       full_name: fullName,
       email,
       role: "employee",
+      ...scheduleForNewEmployee(fullName, email),
     });
 
     if (profileError) {
@@ -132,6 +134,7 @@ async function restoreEmployee(
     full_name: input.fullName,
     email: input.email,
     role: "employee",
+    ...scheduleForNewEmployee(input.fullName, input.email),
   });
 
   if (profileError) {
