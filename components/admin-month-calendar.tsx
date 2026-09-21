@@ -8,6 +8,7 @@ import {
   todayIstDate,
   type CalendarCell,
 } from "@/lib/time";
+import { isWeeklyOff, weeklyOffReason } from "@/lib/workdays";
 
 export type DayPresence = {
   clocked: number;
@@ -102,7 +103,8 @@ function CalendarDay({
   const dayNumber = Number(cell.date.slice(8, 10));
   const clocked = presence?.clocked ?? 0;
   const halfDay = presence?.halfDay ?? 0;
-  const label = dateLabel(cell.date, clocked, halfDay, selected, isToday);
+  const off = isWeeklyOff(cell.date);
+  const label = dateLabel(cell.date, clocked, halfDay, selected, isToday, off);
 
   return (
     <Link
@@ -117,7 +119,9 @@ function CalendarDay({
           ? "bg-foreground text-white"
           : isToday
             ? "bg-muted text-foreground"
-            : "text-foreground hover:bg-muted",
+            : off
+              ? "text-muted-foreground hover:bg-muted"
+              : "text-foreground hover:bg-muted",
         !cell.inMonth && !selected ? "text-muted-foreground/50" : null
       )}
     >
@@ -128,6 +132,13 @@ function CalendarDay({
             className={cn(
               "size-1.5 rounded-full",
               selected ? "bg-white" : "bg-[#1f7a5a]"
+            )}
+          />
+        ) : off ? (
+          <span
+            className={cn(
+              "size-1.5 rounded-full",
+              selected ? "bg-white/40" : "bg-border"
             )}
           />
         ) : (
@@ -155,7 +166,8 @@ function dateLabel(
   clocked: number,
   halfDay: number,
   selected: boolean,
-  isToday: boolean
+  isToday: boolean,
+  off: boolean
 ) {
   const readable = new Intl.DateTimeFormat("en-IN", {
     timeZone: "Asia/Kolkata",
@@ -168,6 +180,7 @@ function dateLabel(
   const parts = [readable];
   if (isToday) parts.push("today");
   if (selected) parts.push("selected");
+  if (off) parts.push(weeklyOffReason(date).replace(/\.$/, ""));
   if (clocked > 0) {
     parts.push(`${clocked} clocked in`);
   }

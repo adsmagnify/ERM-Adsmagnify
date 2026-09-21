@@ -16,6 +16,7 @@ import {
   recentDateRange,
   todayIstDate,
 } from "@/lib/time";
+import { isWeeklyOff, weeklyOffReason } from "@/lib/workdays";
 
 type ClockScreenProps = {
   today: Attendance | null;
@@ -29,13 +30,17 @@ function displayStatus(
   schedule: WorkSchedule,
   delayNotice?: DelayNotice | null
 ) {
-  if (!today?.clock_in && delayNotice) {
+  const date = todayIstDate();
+  const { status, reason } = dayDisplayStatus(today, schedule, date);
+  if (status === "Off") {
+    return { status, reason };
+  }
+  if (status === "Not started" && delayNotice) {
     return {
-      status: "Not started" as const,
+      status,
       reason: `Delay sent. Clock in by ${formatIstTime(delayNotice.eta)} for a full day.`,
     };
   }
-  const { status, reason } = dayDisplayStatus(today, schedule);
   if (status === "Not started") {
     return { status, reason: "Clock in to start your day." };
   }
@@ -51,6 +56,8 @@ export function ClockScreen({
   const { status, reason } = displayStatus(today, schedule, delayNotice);
   const byDate = new Map(recent.map((row) => [row.work_date, row]));
   const days = recentDateRange(8);
+  const date = todayIstDate();
+  const offToday = isWeeklyOff(date) && !today?.clock_in;
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-12 px-6 pb-20 pt-10 sm:px-10 lg:px-12">
@@ -59,6 +66,11 @@ export function ClockScreen({
       <StatusPill status={status} reason={reason} />
 
       <div className="flex flex-col gap-4">
+        {offToday ? (
+          <p className="rounded-[20px] border border-border bg-white px-6 py-8 text-center text-sm leading-relaxed text-muted-foreground">
+            {weeklyOffReason(date)} Clock in only if you are working today.
+          </p>
+        ) : null}
         <ClockButtons
           clockedIn={Boolean(today?.clock_in)}
           clockedOut={Boolean(today?.clock_out)}
@@ -69,15 +81,17 @@ export function ClockScreen({
               : "Not yet"
           }
         />
-        <p className="text-center text-sm leading-relaxed text-muted-foreground">
-          {clockRuleCopy(schedule, todayIstDate())}
-        </p>
+        {offToday ? null : (
+          <p className="text-center text-sm leading-relaxed text-muted-foreground">
+            {clockRuleCopy(schedule, date)}
+          </p>
+        )}
         <p className="text-center text-sm text-muted-foreground">
           Clock in and out from the Churchgate office. If the internet address
           changes, clocking in here updates the saved office IP. If you forget
           to clock out, the day closes at 9:00 PM IST.
         </p>
-        {!today?.clock_in ? (
+        {!today?.clock_in && !offToday ? (
           <p className="text-center text-sm text-muted-foreground">
             Running late?{" "}
             <Link
@@ -136,13 +150,21 @@ export function ClockScreen({
                   <StatusPill
                     className="items-start sm:items-end"
                     status={
-                      !row?.clock_in
-                        ? "Not started"
-                        : !row.clock_out
-                          ? "In progress"
-                          : ((row.status ?? "Half day") as "Full day" | "Half day")
+                      !row?.clock_in && isWeeklyOff(date)
+                        ? "Off"
+                        : !row?.clock_in
+                          ? "Not started"
+                          : !row.clock_out
+                            ? "In progress"
+                            : ((row.status ?? "Half day") as "Full day" | "Half day")
                     }
-                    reason={row?.clock_out ? row.status_reason : null}
+                    reason={
+                      !row?.clock_in && isWeeklyOff(date)
+                        ? weeklyOffReason(date)
+                        : row?.clock_out
+                          ? row.status_reason
+                          : null
+                    }
                   />
                 </div>
               </li>

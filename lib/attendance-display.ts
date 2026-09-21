@@ -1,12 +1,28 @@
 import type { Attendance } from "@/lib/database.types";
 import { formatClockTime, type WorkSchedule } from "@/lib/schedule";
+import { isWeeklyOff, weeklyOffReason } from "@/lib/workdays";
 
-export type DisplayStatus = "Not started" | "In progress" | "Full day" | "Half day";
+export type DisplayStatus =
+  | "Not started"
+  | "In progress"
+  | "Full day"
+  | "Half day"
+  | "Off";
 
 export function dayDisplayStatus(
   row: Attendance | null,
-  schedule?: WorkSchedule | null
+  schedule?: WorkSchedule | null,
+  workDate?: string
 ) {
+  const date = row?.work_date ?? workDate ?? null;
+
+  if (date && isWeeklyOff(date) && !row?.clock_in) {
+    return {
+      status: "Off" as const,
+      reason: weeklyOffReason(date),
+    };
+  }
+
   if (!row?.clock_in) {
     return {
       status: "Not started" as const,

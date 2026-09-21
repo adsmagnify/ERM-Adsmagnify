@@ -1,12 +1,18 @@
 import { cn } from "@/lib/utils";
 
-type StatusKind = "Not started" | "In progress" | "Full day" | "Half day";
+type StatusKind =
+  | "Not started"
+  | "In progress"
+  | "Full day"
+  | "Half day"
+  | "Off";
 
 const styles: Record<StatusKind, string> = {
   "Not started": "bg-muted text-muted-foreground",
   "In progress": "bg-[#e7f3ee] text-[#1f7a5a]",
   "Full day": "bg-[#e7f3ee] text-[#1f7a5a]",
   "Half day": "bg-[#f8ece9] text-[#b5432f]",
+  Off: "bg-muted text-muted-foreground",
 };
 
 export function StatusPill({

@@ -12,6 +12,7 @@ import {
   timeToMinutes,
   todayIstDate,
 } from "@/lib/time";
+import { isWeeklyOff } from "@/lib/workdays";
 
 export type DelayActionState = {
   error?: string;
@@ -73,6 +74,10 @@ export async function submitDelayNotice(
   }
 
   const today = todayIstDate();
+  if (isWeeklyOff(today)) {
+    return { error: "Today is a weekly off. A delay email is not needed." };
+  }
+
   const schedule = scheduleFromProfile(profile);
   const clockInBy = clockInByForDate(schedule, today);
   const eta = istDateTime(today, etaTime);

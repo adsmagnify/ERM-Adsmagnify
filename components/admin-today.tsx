@@ -13,6 +13,7 @@ import {
   formatWorkedHours,
   todayIstDate,
 } from "@/lib/time";
+import { isWeeklyOff, weeklyOffReason } from "@/lib/workdays";
 
 type AdminTodayProps = {
   people: Profile[];
@@ -27,6 +28,7 @@ const statusRank = {
   "Full day": 1,
   "Half day": 2,
   "Not started": 3,
+  Off: 4,
 } as const;
 
 function hoursLabel(row: Attendance | null, workDate: string) {
@@ -55,7 +57,7 @@ export function AdminToday({
         attendance.find(
           (item) => item.user_id === person.id && item.work_date === workDate
         ) ?? null;
-      const display = dayDisplayStatus(attendanceRow);
+      const display = dayDisplayStatus(attendanceRow, null, workDate);
       const delay =
         delays.find(
           (item) => item.user_id === person.id && item.work_date === workDate
@@ -74,9 +76,11 @@ export function AdminToday({
       return a.name.localeCompare(b.name);
     });
 
+  const offDay = isWeeklyOff(workDate);
   const counts = {
     inOffice: rows.filter((row) => row.status === "In progress").length,
     notStarted: rows.filter((row) => row.status === "Not started").length,
+    off: rows.filter((row) => row.status === "Off").length,
     fullDay: rows.filter((row) => row.status === "Full day").length,
     halfDay: rows.filter((row) => row.status === "Half day").length,
   };
@@ -91,8 +95,9 @@ export function AdminToday({
           {viewingToday ? "Team today" : "Team"}
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Open any date for in and out times. After clock out you can switch
-          Half day and Full day.
+          {offDay
+            ? weeklyOffReason(workDate)
+            : "Open any date for in and out times. After clock out you can switch Half day and Full day."}
         </p>
       </section>
 
@@ -104,8 +109,8 @@ export function AdminToday({
             value={counts.inOffice}
           />
           <Stat
-            label={viewingToday ? "Not in yet" : "No clock-in"}
-            value={counts.notStarted}
+            label={offDay ? "Off" : viewingToday ? "Not in yet" : "No clock-in"}
+            value={offDay ? counts.off : counts.notStarted}
           />
           <Stat label="Full day" value={counts.fullDay} />
           <Stat label="Half day" value={counts.halfDay} tone="warn" />
@@ -197,7 +202,7 @@ type TeamRow = {
   attendance: Attendance | null;
   delay: DelayNotice | null;
   name: string;
-  status: "Not started" | "In progress" | "Full day" | "Half day";
+  status: "Not started" | "In progress" | "Full day" | "Half day" | "Off";
   reason: string | null;
 };
 
@@ -236,7 +241,13 @@ function StatusCell({ row }: { row: TeamRow }) {
     );
   }
 
-  return <StatusPill className="items-end" status={row.status} />;
+  return (
+    <StatusPill
+      className="items-end"
+      status={row.status}
+      reason={row.status === "Off" ? row.reason : undefined}
+    />
+  );
 }
 
 function Stat({

@@ -4,6 +4,7 @@ import type { Attendance, DelayNotice } from "@/lib/database.types";
 import { requireProfile } from "@/lib/require-profile";
 import { scheduleFromProfile } from "@/lib/schedule";
 import { formatIstDate, formatIstTime, todayIstDate } from "@/lib/time";
+import { isWeeklyOff, weeklyOffReason } from "@/lib/workdays";
 
 export const dynamic = "force-dynamic";
 
@@ -46,7 +47,14 @@ export default async function DelayPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-10 px-6 pb-20 pt-10 sm:px-10 lg:px-12">
-      {clockedIn && !todayNotice ? (
+      {isWeeklyOff(today) && !todayNotice ? (
+        <section className="rounded-[20px] border border-border bg-white p-6 sm:p-8">
+          <h2 className="font-heading text-xl font-semibold">Weekly off</h2>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            {weeklyOffReason(today)} A delay email is not needed.
+          </p>
+        </section>
+      ) : clockedIn && !todayNotice ? (
         <section className="rounded-[20px] border border-border bg-white p-6 sm:p-8">
           <h2 className="font-heading text-xl font-semibold">Already in</h2>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
