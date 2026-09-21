@@ -73,8 +73,9 @@ export function ClockScreen({
           {clockRuleCopy(schedule, todayIstDate())}
         </p>
         <p className="text-center text-sm text-muted-foreground">
-          Clock in and out from the Churchgate office, on office Wi-Fi or ethernet.
-          If you forget to clock out, the day closes at 9:00 PM IST.
+          Clock in and out from the Churchgate office. If the internet address
+          changes, clocking in here updates the saved office IP. If you forget
+          to clock out, the day closes at 9:00 PM IST.
         </p>
         {!today?.clock_in ? (
           <p className="text-center text-sm text-muted-foreground">

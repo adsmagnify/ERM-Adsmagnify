@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getAuthUserId } from "@/lib/auth-user";
-import { isPublicIp, ipMatches, normalizeIp } from "@/lib/office";
+import { isPublicIp, ipMatches, normalizeIp, officeIps, withOfficeIp } from "@/lib/office";
 import {
   assertNearOfficeForSetup,
   getClientPublicIp,
@@ -65,20 +65,44 @@ export async function registerOfficeIp(
     return { error: "Office location is not set up yet." };
   }
 
-  if (ipMatches(normalized, office.allowed_ips)) {
+  if (ipMatches(normalized, officeIps(office))) {
     return { success: "This office network is already saved." };
   }
 
-  const nextIps = [...office.allowed_ips, normalized];
-  const { error } = await ready.supabase
-    .from("office_settings")
-    .update({ allowed_ips: nextIps, updated_at: new Date().toISOString() })
-    .eq("id", 1);
+  return saveOfficeIps(ready.supabase, office, normalized, `Saved office IP (${normalized}).`);
+}
 
-  if (error) return { error: error.message };
+export async function setStaticOfficeIp(
+  ip: string
+): Promise<OfficeActionResult> {
+  const ready = await requireAdmin();
+  if ("error" in ready) return ready;
 
-  revalidatePath("/admin/people");
-  return { success: `Saved office network (${normalized}).` };
+  const normalized = normalizeIp(ip);
+  if (!normalized || !isPublicIp(normalized)) {
+    return { error: "Enter a public IPv4 or IPv6 address." };
+  }
+
+  const office = await loadOfficeSettings(ready.supabase);
+  if (!office) {
+    return { error: "Office location is not set up yet." };
+  }
+
+  if (ipMatches(normalized, officeIps(office))) {
+    return saveOfficeIps(
+      ready.supabase,
+      office,
+      normalized,
+      `Static office IP is ${normalized}.`
+    );
+  }
+
+  return saveOfficeIps(
+    ready.supabase,
+    office,
+    normalized,
+    `Saved static office IP (${normalized}).`
+  );
 }
 
 export async function removeOfficeIp(ip: string): Promise<OfficeActionResult> {
@@ -90,17 +114,73 @@ export async function removeOfficeIp(ip: string): Promise<OfficeActionResult> {
     return { error: "Office location is not set up yet." };
   }
 
-  const nextIps = office.allowed_ips.filter(
-    (item) => normalizeIp(item) !== normalizeIp(ip)
+  const nextIps = officeIps(office).filter(
+    (item) => item !== normalizeIp(ip)
   );
+  const nextStatic =
+    normalizeIp(office.static_ip) === normalizeIp(ip)
+      ? (nextIps[0] ?? null)
+      : office.static_ip;
 
   const { error } = await ready.supabase
     .from("office_settings")
-    .update({ allowed_ips: nextIps, updated_at: new Date().toISOString() })
+    .update({
+      static_ip: nextStatic,
+      allowed_ips: nextIps,
+      updated_at: new Date().toISOString(),
+    })
     .eq("id", 1);
 
-  if (error) return { error: error.message };
+  if (error) {
+    if (/static_ip/i.test(error.message)) {
+      const fallback = await ready.supabase
+        .from("office_settings")
+        .update({
+          allowed_ips: nextIps,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", 1);
+      if (fallback.error) return { error: fallback.error.message };
+    } else {
+      return { error: error.message };
+    }
+  }
 
   revalidatePath("/admin/people");
-  return { success: "Removed that office network." };
+  return { success: "Removed that office IP." };
+}
+
+async function saveOfficeIps(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  office: NonNullable<Awaited<ReturnType<typeof loadOfficeSettings>>>,
+  ip: string,
+  success: string
+): Promise<OfficeActionResult> {
+  const next = withOfficeIp(office, ip);
+  const { error } = await supabase
+    .from("office_settings")
+    .update({
+      static_ip: next.static_ip,
+      allowed_ips: next.allowed_ips,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", 1);
+
+  if (error) {
+    if (/static_ip/i.test(error.message) || /schema cache/i.test(error.message)) {
+      const fallback = await supabase
+        .from("office_settings")
+        .update({
+          allowed_ips: next.allowed_ips,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", 1);
+      if (fallback.error) return { error: fallback.error.message };
+    } else {
+      return { error: error.message };
+    }
+  }
+
+  revalidatePath("/admin/people");
+  return { success };
 }

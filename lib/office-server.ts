@@ -1,13 +1,16 @@
 import { headers } from "next/headers";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/lib/database.types";
 import {
   haversineMeters,
   ipMatches,
   isPublicIp,
   normalizeIp,
+  officeIps,
   parseAllowedIps,
   parseGeoFix,
+  withOfficeIp,
   type GeoFix,
   type OfficeSettings,
 } from "@/lib/office";
@@ -74,22 +77,35 @@ export function presenceBypassEnabled() {
 export async function loadOfficeSettings(
   supabase: Supabase
 ): Promise<OfficeSettings | null> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("office_settings")
-    .select("id, label, address, lat, lng, radius_m, allowed_ips")
+    .select("id, label, address, lat, lng, radius_m, allowed_ips, static_ip")
     .eq("id", 1)
     .maybeSingle();
 
-  if (!data) return null;
+  let row = data;
+  if (error) {
+    const fallback = await supabase
+      .from("office_settings")
+      .select("id, label, address, lat, lng, radius_m, allowed_ips")
+      .eq("id", 1)
+      .maybeSingle();
+    row = fallback.data
+      ? { ...fallback.data, static_ip: null }
+      : null;
+  }
+
+  if (!row) return null;
 
   return {
-    id: data.id,
-    label: data.label,
-    address: data.address,
-    lat: Number(data.lat),
-    lng: Number(data.lng),
-    radius_m: Number(data.radius_m),
-    allowed_ips: parseAllowedIps(data.allowed_ips),
+    id: row.id,
+    label: row.label,
+    address: row.address,
+    lat: Number(row.lat),
+    lng: Number(row.lng),
+    radius_m: Number(row.radius_m),
+    allowed_ips: parseAllowedIps(row.allowed_ips),
+    static_ip: row.static_ip ? String(row.static_ip) : null,
   };
 }
 
@@ -125,54 +141,92 @@ export function assertAtOffice(
   office: OfficeSettings | null,
   ip: string | null,
   input: { lat?: number; lng?: number; accuracy?: number }
-): { error: string | null; fix: GeoFix | null } {
+): { error: string | null; fix: GeoFix | null; learnIp: boolean } {
   const fix = parseGeoFix(input);
 
   if (presenceBypassEnabled()) {
-    return { error: null, fix };
+    return { error: null, fix, learnIp: false };
   }
 
   if (!fix) {
     return {
       error: "Allow location to clock in at the office.",
       fix: null,
+      learnIp: false,
     };
   }
 
   if (!office) {
-    return { error: "Office location is not set up yet.", fix };
-  }
-
-  if (!office.allowed_ips.length) {
-    return {
-      error:
-        "The office network is not registered yet. Ask an admin to save it from People.",
-      fix,
-    };
-  }
-
-  if (!ip || !isPublicIp(ip) || !ipMatches(ip, office.allowed_ips)) {
-    return {
-      error: "Connect to the office network (Wi-Fi or ethernet) to clock in or out.",
-      fix,
-    };
+    return { error: "Office location is not set up yet.", fix, learnIp: false };
   }
 
   const distance = haversineMeters(fix.lat, fix.lng, office.lat, office.lng);
   const slack = Math.min(Math.max(fix.accuracy, 0), 120);
-  if (distance > office.radius_m + slack) {
+  const atOffice = distance <= office.radius_m + slack;
+  const preciseEnough = !(fix.accuracy > 800 && distance > office.radius_m);
+
+  if (!atOffice) {
     return {
       error: "You need to be at the Churchgate office to clock in or out.",
       fix,
+      learnIp: false,
     };
   }
 
-  if (fix.accuracy > 800 && distance > office.radius_m) {
+  if (!preciseEnough) {
     return {
       error: "Location is too imprecise. Allow precise location, then try again.",
       fix,
+      learnIp: false,
     };
   }
 
-  return { error: null, fix };
+  const saved = officeIps(office);
+  const onSavedNetwork =
+    Boolean(ip) && isPublicIp(ip) && ipMatches(ip as string, saved);
+
+  if (onSavedNetwork) {
+    return { error: null, fix, learnIp: false };
+  }
+
+  if (ip && isPublicIp(ip) && distance <= office.radius_m) {
+    return { error: null, fix, learnIp: true };
+  }
+
+  return {
+    error: "Connect to the office network (Wi-Fi or ethernet) to clock in or out.",
+    fix,
+    learnIp: false,
+  };
+}
+
+export async function rememberOfficeIp(office: OfficeSettings, ip: string | null) {
+  const normalized = normalizeIp(ip);
+  if (!normalized || !isPublicIp(normalized)) return;
+  if (ipMatches(normalized, officeIps(office))) return;
+
+  const next = withOfficeIp(office, normalized);
+  try {
+    const admin = createAdminClient();
+    const { error } = await admin
+      .from("office_settings")
+      .update({
+        static_ip: next.static_ip,
+        allowed_ips: next.allowed_ips,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", 1);
+
+    if (error) {
+      await admin
+        .from("office_settings")
+        .update({
+          allowed_ips: next.allowed_ips,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", 1);
+    }
+  } catch {
+    // SQL not applied yet, or service role missing.
+  }
 }

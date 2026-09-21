@@ -47,6 +47,7 @@ export type OfficeSettingsRow = {
   lng: number;
   radius_m: number;
   allowed_ips: string[];
+  static_ip: string | null;
   updated_at: string;
 };
 
@@ -145,6 +146,7 @@ export type Database = {
           lng?: number;
           radius_m?: number;
           allowed_ips?: string[];
+          static_ip?: string | null;
           updated_at?: string;
         };
         Relationships: [];

@@ -6,6 +6,7 @@ export type OfficeSettings = {
   lng: number;
   radius_m: number;
   allowed_ips: string[];
+  static_ip: string | null;
 };
 
 export type GeoFix = {
@@ -58,6 +59,7 @@ export function normalizeIp(value: string | null | undefined) {
   let ip = value.trim();
   if (ip.startsWith("::ffff:")) ip = ip.slice(7);
   if (ip === "::1") return "127.0.0.1";
+  ip = ip.replace(/\/\d+$/, "");
   const withoutPort = ip.includes(".") ? ip.replace(/:\d+$/, "") : ip;
   return withoutPort.replace(/^\[([^\]]+)\](?::\d+)?$/, "$1") || null;
 }
@@ -91,6 +93,39 @@ export function ipMatches(ip: string, allowed: string[]) {
   const normalized = normalizeIp(ip);
   if (!normalized) return false;
   return allowed.some((item) => normalizeIp(item) === normalized);
+}
+
+export function officeIps(office: Pick<OfficeSettings, "static_ip" | "allowed_ips">) {
+  return [
+    ...new Set(
+      [office.static_ip, ...office.allowed_ips]
+        .map((item) => normalizeIp(item))
+        .filter((item): item is string => Boolean(item))
+    ),
+  ];
+}
+
+export function withOfficeIp(
+  office: Pick<OfficeSettings, "static_ip" | "allowed_ips">,
+  ip: string
+) {
+  const normalized = normalizeIp(ip);
+  if (!normalized) {
+    return {
+      static_ip: office.static_ip,
+      allowed_ips: office.allowed_ips,
+    };
+  }
+
+  const nextIps = [
+    normalized,
+    ...officeIps(office).filter((item) => item !== normalized),
+  ].slice(0, 10);
+
+  return {
+    static_ip: normalized,
+    allowed_ips: nextIps,
+  };
 }
 
 export function parseAllowedIps(value: unknown): string[] {
