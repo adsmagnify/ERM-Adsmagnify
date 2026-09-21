@@ -7,8 +7,9 @@ import { type DelayEmailInput } from "@/lib/delay-email";
 import { clockInByForDate, scheduleFromProfile } from "@/lib/schedule";
 import { createClient } from "@/lib/supabase/server";
 import {
-  formatIstTime,
+  formatIstTime24,
   istDateTime,
+  timeToMinutes,
   todayIstDate,
 } from "@/lib/time";
 
@@ -80,6 +81,13 @@ export async function submitDelayNotice(
     return { error: "Choose a valid arrival time." };
   }
 
+  if (timeToMinutes(etaTime) < timeToMinutes(clockInBy)) {
+    return {
+      error:
+        "Use 24-hour IST for ETA (for example 14:30). It must be at or after your clock-in time.",
+    };
+  }
+
   const { error } = await supabase.from("delay_notices").upsert(
     {
       user_id: userId,
@@ -108,7 +116,7 @@ export async function submitDelayNotice(
     email,
     workDate: today,
     clockInBy,
-    etaLabel: formatIstTime(eta.toISOString()),
+    etaLabel: formatIstTime24(eta.toISOString()),
     reason,
     message,
   };

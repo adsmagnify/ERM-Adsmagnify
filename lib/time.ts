@@ -108,6 +108,16 @@ export function formatIstTime(iso: string | null) {
   }).format(new Date(iso));
 }
 
+export function formatIstTime24(iso: string | null) {
+  if (!iso) return "—";
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: TIMEZONE,
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(new Date(iso));
+}
+
 export function istDateTime(isoDate: string, time: string) {
   const hhmmss = time.length === 5 ? `${time}:00` : time;
   return new Date(`${isoDate}T${hhmmss}+05:30`);

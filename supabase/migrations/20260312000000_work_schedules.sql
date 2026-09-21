@@ -1,5 +1,5 @@
 -- Per-person work hours. Default remains 10:45 AM – 7:00 PM IST.
--- Sneha: 3:45 PM – 7:00 PM, Wednesdays 4:30 PM – 7:00 PM.
+-- Sneha: 3:45 PM – 7:00 PM, Wednesdays 4:45 PM – 7:00 PM.
 -- Aditya: 2:15 PM – 6:00 PM.
 -- Safe to re-run in the SQL editor.
 -- If you re-run this after office presence is enabled, also re-run
@@ -172,7 +172,7 @@ update public.profiles
 set
   clock_in_by = time '15:45:00',
   clock_out_after = time '19:00:00',
-  wednesday_clock_in_by = time '16:30:00'
+  wednesday_clock_in_by = time '16:45:00'
 where full_name ilike '%sneha%'
    or split_part(coalesce(email, ''), '@', 1) ilike '%sneha%';
 

@@ -73,7 +73,7 @@ export function scheduleForNewEmployee(fullName: string, email: string) {
     return {
       clock_in_by: "15:45:00",
       clock_out_after: "19:00:00",
-      wednesday_clock_in_by: "16:30:00",
+      wednesday_clock_in_by: "16:45:00",
     };
   }
   if (haystack.includes("aditya")) {
