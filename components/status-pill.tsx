@@ -5,7 +5,8 @@ type StatusKind =
   | "In progress"
   | "Full day"
   | "Half day"
-  | "Off";
+  | "Off"
+  | "Leave";
 
 const styles: Record<StatusKind, string> = {
   "Not started": "bg-muted text-muted-foreground",
@@ -13,6 +14,7 @@ const styles: Record<StatusKind, string> = {
   "Full day": "bg-[#e7f3ee] text-[#1f7a5a]",
   "Half day": "bg-[#f8ece9] text-[#b5432f]",
   Off: "bg-muted text-muted-foreground",
+  Leave: "bg-[#efe8e0] text-[#6b5344]",
 };
 
 export function StatusPill({

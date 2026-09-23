@@ -6,8 +6,8 @@ import {
 } from "@/components/admin-month-calendar";
 import { SendDailyReportButton } from "@/components/send-daily-report-button";
 import { StatusPill } from "@/components/status-pill";
-import { dayDisplayStatus } from "@/lib/attendance-display";
-import type { Attendance, DelayNotice, Profile } from "@/lib/database.types";
+import { dayDisplayStatus, leaveOnDate } from "@/lib/attendance-display";
+import type { Attendance, DelayNotice, LeaveRequest, Profile } from "@/lib/database.types";
 import {
   formatIstDate,
   formatIstTime,
@@ -20,6 +20,7 @@ type AdminTodayProps = {
   people: Profile[];
   attendance: Attendance[];
   delays?: DelayNotice[];
+  leaves?: LeaveRequest[];
   workDate: string;
   presence: Record<string, DayPresence>;
 };
@@ -28,8 +29,9 @@ const statusRank = {
   "In progress": 0,
   "Full day": 1,
   "Half day": 2,
-  "Not started": 3,
-  Off: 4,
+  Leave: 3,
+  "Not started": 4,
+  Off: 5,
 } as const;
 
 function hoursLabel(row: Attendance | null, workDate: string) {
@@ -45,6 +47,7 @@ export function AdminToday({
   people,
   attendance,
   delays = [],
+  leaves = [],
   workDate,
   presence,
 }: AdminTodayProps) {
@@ -58,15 +61,20 @@ export function AdminToday({
         attendance.find(
           (item) => item.user_id === person.id && item.work_date === workDate
         ) ?? null;
-      const display = dayDisplayStatus(attendanceRow, null, workDate);
       const delay =
         delays.find(
           (item) => item.user_id === person.id && item.work_date === workDate
         ) ?? null;
+      const leave = leaveOnDate(
+        leaves.filter((item) => item.user_id === person.id),
+        workDate
+      );
+      const display = dayDisplayStatus(attendanceRow, null, workDate, leave);
       return {
         person,
         attendance: attendanceRow,
         delay,
+        leave,
         name: person.full_name?.trim() || person.email || "Employee",
         ...display,
       };
@@ -81,6 +89,7 @@ export function AdminToday({
   const counts = {
     inOffice: rows.filter((row) => row.status === "In progress").length,
     notStarted: rows.filter((row) => row.status === "Not started").length,
+    leave: rows.filter((row) => row.status === "Leave").length,
     off: rows.filter((row) => row.status === "Off").length,
     fullDay: rows.filter((row) => row.status === "Full day").length,
     halfDay: rows.filter((row) => row.status === "Half day").length,
@@ -118,6 +127,7 @@ export function AdminToday({
           />
           <Stat label="Full day" value={counts.fullDay} />
           <Stat label="Half day" value={counts.halfDay} tone="warn" />
+          <Stat label="Leave" value={counts.leave} />
         </section>
       </div>
 
@@ -205,8 +215,9 @@ type TeamRow = {
   person: Profile;
   attendance: Attendance | null;
   delay: DelayNotice | null;
+  leave: LeaveRequest | null;
   name: string;
-  status: "Not started" | "In progress" | "Full day" | "Half day" | "Off";
+  status: "Not started" | "In progress" | "Full day" | "Half day" | "Off" | "Leave";
   reason: string | null;
 };
 
@@ -249,7 +260,9 @@ function StatusCell({ row }: { row: TeamRow }) {
     <StatusPill
       className="items-end"
       status={row.status}
-      reason={row.status === "Off" ? row.reason : undefined}
+      reason={
+        row.status === "Off" || row.status === "Leave" ? row.reason : undefined
+      }
     />
   );
 }

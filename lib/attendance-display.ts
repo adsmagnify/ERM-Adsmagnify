@@ -1,4 +1,4 @@
-import type { Attendance } from "@/lib/database.types";
+import type { Attendance, LeaveRequest } from "@/lib/database.types";
 import { formatClockTime, type WorkSchedule } from "@/lib/schedule";
 import { isWeeklyOff, weeklyOffReason } from "@/lib/workdays";
 
@@ -7,12 +7,28 @@ export type DisplayStatus =
   | "In progress"
   | "Full day"
   | "Half day"
-  | "Off";
+  | "Off"
+  | "Leave";
+
+export function leaveOnDate(leaves: LeaveRequest[], workDate: string) {
+  const matches = leaves.filter(
+    (row) =>
+      row.from_date <= workDate &&
+      row.to_date >= workDate &&
+      row.status !== "Rejected"
+  );
+  return (
+    matches.find((row) => row.status === "Approved") ??
+    matches.find((row) => row.status === "Pending") ??
+    null
+  );
+}
 
 export function dayDisplayStatus(
   row: Attendance | null,
   schedule?: WorkSchedule | null,
-  workDate?: string
+  workDate?: string,
+  leave?: Pick<LeaveRequest, "kind" | "status"> | null
 ) {
   const date = row?.work_date ?? workDate ?? null;
 
@@ -20,6 +36,19 @@ export function dayDisplayStatus(
     return {
       status: "Off" as const,
       reason: weeklyOffReason(date),
+    };
+  }
+
+  if (!row?.clock_in && (row?.status === "Leave" || (leave && leave.status !== "Rejected"))) {
+    const kind =
+      row?.status === "Leave" &&
+      (row.status_reason === "Casual" || row.status_reason === "Sick")
+        ? row.status_reason
+        : leave?.kind;
+    const leaveStatus = leave?.status ?? "Approved";
+    return {
+      status: "Leave" as const,
+      reason: kind ? `${kind} · ${leaveStatus}` : leaveStatus,
     };
   }
 

@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { requestLeave } from "@/app/actions/leave";
 import { Field, fieldInputClass, SubmitButton } from "@/components/form-field";
 import type { LeaveKind } from "@/lib/database.types";
+import { LEAVE_EMAIL_CC, LEAVE_EMAIL_TO } from "@/lib/leave-email";
 import { todayIstDate } from "@/lib/time";
 import { cn } from "@/lib/utils";
 
@@ -38,7 +39,7 @@ export function LeaveRequestForm() {
       setKind("Casual");
       setFromDate(today);
       setToDate(today);
-      toast.success("Leave request sent.");
+  toast.success("Leave request emailed.");
     });
   }
 
@@ -49,7 +50,8 @@ export function LeaveRequestForm() {
     >
       <h2 className="font-heading text-xl font-semibold">Request leave</h2>
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-        Casual or sick. An admin will approve or reject it.
+        Casual or sick. An admin will approve or reject it. This emails{" "}
+        {LEAVE_EMAIL_TO}, with {LEAVE_EMAIL_CC.join(", ")} on cc.
       </p>
 
       <fieldset className="mt-6">

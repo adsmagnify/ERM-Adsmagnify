@@ -1,7 +1,7 @@
 export type TaskPriority = "High" | "Medium" | "Low";
 export type TaskStatus = "To Do" | "In Progress" | "Done";
-export type DayStatus = "Full day" | "Half day";
-export type StatusReason = "Late arrival" | "Left early";
+export type DayStatus = "Full day" | "Half day" | "Leave";
+export type StatusReason = "Late arrival" | "Left early" | "Casual" | "Sick";
 export type UserRole = "admin" | "employee";
 export type LeaveKind = "Casual" | "Sick";
 export type LeaveStatus = "Pending" | "Approved" | "Rejected";
@@ -124,10 +124,15 @@ export type Database = {
           clock_in_ip?: string | null;
         };
         Update: {
+          clock_in?: string | null;
           clock_out?: string | null;
           status?: DayStatus | null;
           status_reason?: StatusReason | null;
           status_overridden?: boolean;
+          clock_in_lat?: number | null;
+          clock_in_lng?: number | null;
+          clock_in_accuracy?: number | null;
+          clock_in_ip?: string | null;
           clock_out_lat?: number | null;
           clock_out_lng?: number | null;
           clock_out_accuracy?: number | null;

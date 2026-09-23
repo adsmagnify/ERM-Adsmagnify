@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { AdminToday } from "@/components/admin-today";
 import type { DayPresence } from "@/components/admin-month-calendar";
-import type { Attendance, DelayNotice, Profile } from "@/lib/database.types";
+import type { Attendance, DelayNotice, LeaveRequest, Profile } from "@/lib/database.types";
 import { closeOpenAttendance } from "@/lib/close-open-attendance";
 import { requireProfile } from "@/lib/require-profile";
 import { monthCalendar, parseWorkDate, todayIstDate } from "@/lib/time";
@@ -31,7 +31,7 @@ export default async function AdminPage({
   const from = grid[0]?.date ?? workDate;
   const to = grid[grid.length - 1]?.date ?? workDate;
 
-  const [{ data: people }, attendanceResult, { data: delays }] =
+  const [{ data: people }, attendanceResult, { data: delays }, { data: leaves }] =
     await Promise.all([
       supabase
         .from("profiles")
@@ -48,6 +48,12 @@ export default async function AdminPage({
         .from("delay_notices")
         .select("id, user_id, work_date, eta, reason, message, created_at")
         .eq("work_date", workDate),
+      supabase
+        .from("leave_requests")
+        .select("id, user_id, kind, from_date, to_date, reason, status, created_at")
+        .lte("from_date", workDate)
+        .gte("to_date", workDate)
+        .in("status", ["Pending", "Approved"]),
     ]);
 
   let monthAttendance = (attendanceResult.data ?? []) as Attendance[];
@@ -85,6 +91,7 @@ export default async function AdminPage({
         people={(people ?? []) as Profile[]}
         attendance={dayAttendance}
         delays={(delays ?? []) as DelayNotice[]}
+        leaves={(leaves ?? []) as LeaveRequest[]}
         workDate={workDate}
         presence={presence}
       />

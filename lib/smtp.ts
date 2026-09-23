@@ -6,6 +6,13 @@ import {
   delayEmailSubject,
   type DelayEmailInput,
 } from "@/lib/delay-email";
+import {
+  LEAVE_EMAIL_CC,
+  LEAVE_EMAIL_TO,
+  leaveEmailBody,
+  leaveEmailSubject,
+  type LeaveEmailInput,
+} from "@/lib/leave-email";
 
 function smtpConfig() {
   const host = process.env.SMTP_HOST?.trim() || "smtp.gmail.com";
@@ -85,6 +92,17 @@ export async function sendDelayEmail(input: DelayEmailInput) {
     cc: [...DELAY_EMAIL_CC],
     subject: delayEmailSubject(input),
     text: delayEmailBody(input),
+    fromName: `${input.name} via Adsmagnify Clock`,
+    replyTo: input.email || undefined,
+  });
+}
+
+export async function sendLeaveEmail(input: LeaveEmailInput) {
+  return sendMail({
+    to: LEAVE_EMAIL_TO,
+    cc: [...LEAVE_EMAIL_CC],
+    subject: leaveEmailSubject(input),
+    text: leaveEmailBody(input),
     fromName: `${input.name} via Adsmagnify Clock`,
     replyTo: input.email || undefined,
   });

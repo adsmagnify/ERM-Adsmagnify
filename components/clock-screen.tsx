@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { dayDisplayStatus } from "@/lib/attendance-display";
-import type { Attendance, DelayNotice } from "@/lib/database.types";
+import { dayDisplayStatus, leaveOnDate } from "@/lib/attendance-display";
+import type { Attendance, DelayNotice, LeaveRequest } from "@/lib/database.types";
 import { ClockButtons } from "@/components/clock-buttons";
 import { LiveClock } from "@/components/live-clock";
 import { StatusPill } from "@/components/status-pill";
@@ -23,16 +23,18 @@ type ClockScreenProps = {
   recent: Attendance[];
   schedule?: WorkSchedule;
   delayNotice?: DelayNotice | null;
+  leaves?: LeaveRequest[];
 };
 
 function displayStatus(
   today: Attendance | null,
   schedule: WorkSchedule,
-  delayNotice?: DelayNotice | null
+  delayNotice?: DelayNotice | null,
+  leave?: LeaveRequest | null
 ) {
   const date = todayIstDate();
-  const { status, reason } = dayDisplayStatus(today, schedule, date);
-  if (status === "Off") {
+  const { status, reason } = dayDisplayStatus(today, schedule, date, leave);
+  if (status === "Off" || status === "Leave") {
     return { status, reason };
   }
   if (status === "Not started" && delayNotice) {
@@ -52,12 +54,15 @@ export function ClockScreen({
   recent,
   schedule = DEFAULT_SCHEDULE,
   delayNotice = null,
+  leaves = [],
 }: ClockScreenProps) {
-  const { status, reason } = displayStatus(today, schedule, delayNotice);
+  const date = todayIstDate();
+  const todayLeave = leaveOnDate(leaves, date);
+  const { status, reason } = displayStatus(today, schedule, delayNotice, todayLeave);
   const byDate = new Map(recent.map((row) => [row.work_date, row]));
   const days = recentDateRange(8);
-  const date = todayIstDate();
   const offToday = isWeeklyOff(date) && !today?.clock_in;
+  const leaveToday = status === "Leave";
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-12 px-6 pb-20 pt-10 sm:px-10 lg:px-12">
@@ -70,6 +75,10 @@ export function ClockScreen({
           <p className="rounded-[20px] border border-border bg-white px-6 py-8 text-center text-sm leading-relaxed text-muted-foreground">
             {weeklyOffReason(date)} Clock in only if you are working today.
           </p>
+        ) : leaveToday ? (
+          <p className="rounded-[20px] border border-border bg-white px-6 py-8 text-center text-sm leading-relaxed text-muted-foreground">
+            {reason}. Clock in only if you are working today.
+          </p>
         ) : null}
         <ClockButtons
           clockedIn={Boolean(today?.clock_in)}
@@ -81,7 +90,7 @@ export function ClockScreen({
               : "Not yet"
           }
         />
-        {offToday ? null : (
+        {offToday || leaveToday ? null : (
           <p className="text-center text-sm leading-relaxed text-muted-foreground">
             {clockRuleCopy(schedule, date)}
           </p>
@@ -91,7 +100,7 @@ export function ClockScreen({
           changes, clocking in here updates the saved office IP. If you forget
           to clock out, the day closes at 9:00 PM IST.
         </p>
-        {!today?.clock_in && !offToday ? (
+        {!today?.clock_in && !offToday && !leaveToday ? (
           <p className="text-center text-sm text-muted-foreground">
             Running late?{" "}
             <Link
@@ -128,6 +137,7 @@ export function ClockScreen({
         <ul className="mt-5 flex flex-col gap-3">
           {days.map((date) => {
             const row = byDate.get(date);
+            const leave = leaveOnDate(leaves, date);
             return (
               <li
                 key={date}
@@ -152,18 +162,22 @@ export function ClockScreen({
                     status={
                       !row?.clock_in && isWeeklyOff(date)
                         ? "Off"
-                        : !row?.clock_in
-                          ? "Not started"
-                          : !row.clock_out
-                            ? "In progress"
-                            : ((row.status ?? "Half day") as "Full day" | "Half day")
+                        : !row?.clock_in && leave
+                          ? "Leave"
+                          : !row?.clock_in
+                            ? "Not started"
+                            : !row.clock_out
+                              ? "In progress"
+                              : ((row.status ?? "Half day") as "Full day" | "Half day")
                     }
                     reason={
                       !row?.clock_in && isWeeklyOff(date)
                         ? weeklyOffReason(date)
-                        : row?.clock_out
-                          ? row.status_reason
-                          : null
+                        : !row?.clock_in && leave
+                          ? `${leave.kind} · ${leave.status}`
+                          : row?.clock_out
+                            ? row.status_reason
+                            : null
                     }
                   />
                 </div>

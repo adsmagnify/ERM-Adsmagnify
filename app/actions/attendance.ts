@@ -71,14 +71,42 @@ export async function clockIn(payload: ClockPayload): Promise<ActionResult> {
 
   const admin = createAdminClient();
   await closeOpenAttendance();
-  const { error } = await admin.from("attendance").insert({
-    user_id: ready.userId,
-    work_date: todayIstDate(),
+  const workDate = todayIstDate();
+  const { data: existing, error: lookupError } = await admin
+    .from("attendance")
+    .select("id, clock_in")
+    .eq("user_id", ready.userId)
+    .eq("work_date", workDate)
+    .maybeSingle();
+
+  if (lookupError) {
+    return { error: lookupError.message };
+  }
+
+  if (existing?.clock_in) {
+    return { error: "Already clocked in today" };
+  }
+
+  const clockInFix = {
     clock_in_lat: ready.fix?.lat ?? null,
     clock_in_lng: ready.fix?.lng ?? null,
     clock_in_accuracy: ready.fix?.accuracy ?? null,
     clock_in_ip: ready.ip,
-  });
+  };
+
+  const { error } = existing
+    ? await admin
+        .from("attendance")
+        .update({
+          ...clockInFix,
+          clock_in: new Date().toISOString(),
+        })
+        .eq("id", existing.id)
+    : await admin.from("attendance").insert({
+        user_id: ready.userId,
+        work_date: workDate,
+        ...clockInFix,
+      });
 
   if (error) {
     if (error.code === "23505") {
@@ -105,7 +133,7 @@ export async function clockOut(payload: ClockPayload): Promise<ActionResult> {
   const admin = createAdminClient();
   const { data: row, error: lookupError } = await admin
     .from("attendance")
-    .select("id, clock_out")
+    .select("id, clock_in, clock_out")
     .eq("user_id", ready.userId)
     .eq("work_date", todayIstDate())
     .maybeSingle();
@@ -114,7 +142,7 @@ export async function clockOut(payload: ClockPayload): Promise<ActionResult> {
     return { error: lookupError.message };
   }
 
-  if (!row) {
+  if (!row?.clock_in) {
     return { error: "Clock in first" };
   }
 

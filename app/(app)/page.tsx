@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { ClockScreen } from "@/components/clock-screen";
-import type { Attendance, DelayNotice } from "@/lib/database.types";
+import type { Attendance, DelayNotice, LeaveRequest } from "@/lib/database.types";
 import { closeOpenAttendance } from "@/lib/close-open-attendance";
 import { requireProfile } from "@/lib/require-profile";
 import { scheduleFromProfile } from "@/lib/schedule";
@@ -23,7 +23,7 @@ export default async function ClockPage() {
   const today = todayIstDate();
   const from = addDays(today, -7);
 
-  const [{ data: rows, error: attendanceError }, { data: delayRow }] =
+  const [{ data: rows, error: attendanceError }, { data: delayRow }, { data: leaveRows }] =
     await Promise.all([
       supabase
         .from("attendance")
@@ -38,6 +38,13 @@ export default async function ClockPage() {
         .eq("user_id", user.id)
         .eq("work_date", today)
         .maybeSingle(),
+      supabase
+        .from("leave_requests")
+        .select("id, user_id, kind, from_date, to_date, reason, status, created_at")
+        .eq("user_id", user.id)
+        .lte("from_date", today)
+        .gte("to_date", from)
+        .in("status", ["Pending", "Approved"]),
     ]);
 
   let recent = (rows ?? []) as Attendance[];
@@ -64,6 +71,7 @@ export default async function ClockPage() {
         recent={recent}
         schedule={scheduleFromProfile(profile)}
         delayNotice={(delayRow as DelayNotice | null) ?? null}
+        leaves={(leaveRows ?? []) as LeaveRequest[]}
       />
     </main>
   );

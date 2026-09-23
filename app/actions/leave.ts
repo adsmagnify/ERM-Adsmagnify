@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getAuthUserId } from "@/lib/auth-user";
 import type { LeaveKind } from "@/lib/database.types";
+import { sendLeaveEmail } from "@/lib/smtp";
 import { createClient } from "@/lib/supabase/server";
 import { isIsoDate, todayIstDate } from "@/lib/time";
 
@@ -65,7 +66,7 @@ export async function requestLeave(
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("full_name, email, role")
     .eq("id", userId)
     .maybeSingle();
 
@@ -102,7 +103,23 @@ export async function requestLeave(
     return setupError(error.message);
   }
 
+  const name = profile?.full_name?.trim() || profile?.email || "Employee";
+  const email = profile?.email || "";
+  const sent = await sendLeaveEmail({
+    name,
+    email,
+    kind,
+    fromDate,
+    toDate,
+    reason,
+    status: "Pending",
+  });
+  if (sent.error) {
+    return { error: sent.error };
+  }
+
   revalidatePath("/leaves");
   revalidatePath("/admin/leaves");
+  revalidatePath("/admin");
   return { success: true };
 }
