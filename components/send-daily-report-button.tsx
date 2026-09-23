@@ -14,7 +14,7 @@ export function SendDailyReportButton({ workDate }: { workDate: string }) {
         toast.error(result.error);
         return;
       }
-      toast.success("Day report emailed to Vinay and Aloke.");
+      toast.success("Day report emailed to Adsmagnify and Vinay, with Aloke on cc.");
     });
   }
 
@@ -23,7 +23,7 @@ export function SendDailyReportButton({ workDate }: { workDate: string }) {
       type="button"
       onClick={onSend}
       disabled={pending}
-      title="Emails vinay.h@adsmagnify.in and alokebajpai@gmail.com"
+      title="To adsmagnify@gmail.com and vinay.h@adsmagnify.in, cc alokebajpai@gmail.com"
       className="inline-flex h-11 shrink-0 cursor-pointer items-center justify-center rounded-2xl border border-border bg-white px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
     >
       {pending ? "Sending…" : "Email day report"}

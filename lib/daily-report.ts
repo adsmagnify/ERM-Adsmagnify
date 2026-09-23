@@ -19,9 +19,11 @@ import {
 import { isWeeklyOff, weeklyOffReason } from "@/lib/workdays";
 
 export const DAILY_REPORT_TO = [
+  "adsmagnify@gmail.com",
   "vinay.h@adsmagnify.in",
-  "alokebajpai@gmail.com",
 ] as const;
+
+export const DAILY_REPORT_CC = ["alokebajpai@gmail.com"] as const;
 
 export type DailyReportStatus =
   | "Full day"
@@ -272,6 +274,7 @@ export async function sendDailyDayReport(workDate: string) {
 
   return sendMail({
     to: [...DAILY_REPORT_TO],
+    cc: [...DAILY_REPORT_CC],
     subject: dailyReportSubject(workDate),
     text: dailyReportText(workDate, rows),
     html: dailyReportHtml(workDate, rows),
