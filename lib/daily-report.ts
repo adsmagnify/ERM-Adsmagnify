@@ -16,7 +16,7 @@ import {
   formatWorkedHours,
   todayIstDate,
 } from "@/lib/time";
-import { isWeeklyOff, weeklyOffReason } from "@/lib/workdays";
+import { isWeeklyOff, nextWorkingDay, weeklyOffReason } from "@/lib/workdays";
 
 export const DAILY_REPORT_TO = [
   "adsmagnify@gmail.com",
@@ -57,13 +57,11 @@ export type EmployeeDayReport = {
     status: string;
     reason: string;
   } | null;
-  tasks: DailyReportTask[];
-};
-
-const taskStatusOrder: Record<TaskStatus, number> = {
-  "To Do": 0,
-  "In Progress": 1,
-  Done: 2,
+  /** Tasks marked Done for this work date. */
+  doneTasks: DailyReportTask[];
+  /** Unfinished tasks due today — reported as To Do for the next working day. */
+  todoNextTasks: DailyReportTask[];
+  nextWorkDate: string;
 };
 
 const taskPriorityOrder: Record<TaskPriority, number> = {
@@ -87,32 +85,51 @@ export function buildEmployeeDayReport(
   const name = person.full_name?.trim() || person.email || "Employee";
   const email = person.email ?? "";
   const leave = pickLeave(leaves);
-  const sortedTasks = [...tasks].sort((a, b) => {
-    const status = taskStatusOrder[a.status] - taskStatusOrder[b.status];
-    if (status !== 0) return status;
-    return taskPriorityOrder[a.priority] - taskPriorityOrder[b.priority];
-  });
+  const nextWorkDate = nextWorkingDay(workDate);
+
+  const doneTasks = tasks
+    .filter((task) => task.status === "Done")
+    .sort(
+      (a, b) => taskPriorityOrder[a.priority] - taskPriorityOrder[b.priority]
+    )
+    .map(taskFields);
+
+  const todoNextTasks = tasks
+    .filter((task) => task.status !== "Done")
+    .sort(
+      (a, b) => taskPriorityOrder[a.priority] - taskPriorityOrder[b.priority]
+    )
+    .map((task) => ({
+      ...taskFields(task),
+      // Report unfinished work as To Do for the next working day.
+      status: "To Do" as TaskStatus,
+    }));
+
+  const base = {
+    name,
+    email,
+    delay: delayFields(delay),
+    leave: leaveFields(leave),
+    doneTasks,
+    todoNextTasks,
+    nextWorkDate,
+  };
 
   if (isWeeklyOff(workDate) && !attendance?.clock_in) {
     return {
-      name,
-      email,
+      ...base,
       status: "Off",
       statusNote: weeklyOffReason(workDate).replace(/\.$/, ""),
       clockIn: null,
       clockOut: null,
       autoClockedOut: false,
       hours: "—",
-      delay: delayFields(delay),
-      leave: leaveFields(leave),
-      tasks: sortedTasks.map(taskFields),
     };
   }
 
   if (!attendance?.clock_in) {
     return {
-      name,
-      email,
+      ...base,
       status: "Leave",
       statusNote: leave
         ? `${leave.kind} · ${leave.status}`
@@ -121,9 +138,6 @@ export function buildEmployeeDayReport(
       clockOut: null,
       autoClockedOut: false,
       hours: "—",
-      delay: delayFields(delay),
-      leave: leaveFields(leave),
-      tasks: sortedTasks.map(taskFields),
     };
   }
 
@@ -132,8 +146,7 @@ export function buildEmployeeDayReport(
     : "In progress";
 
   return {
-    name,
-    email,
+    ...base,
     status,
     statusNote: attendance.clock_out
       ? attendance.status_reason
@@ -142,9 +155,6 @@ export function buildEmployeeDayReport(
     clockOut: attendance.clock_out,
     autoClockedOut: Boolean(attendance.auto_clocked_out),
     hours: formatWorkedHours(attendance.clock_in, attendance.clock_out),
-    delay: delayFields(delay),
-    leave: leaveFields(leave),
-    tasks: sortedTasks.map(taskFields),
   };
 }
 
@@ -163,6 +173,11 @@ export function dailyReportText(workDate: string, rows: EmployeeDayReport[]) {
   ];
 
   for (const row of rows) {
+    const nextLabel = formatIstDate(row.nextWorkDate, {
+      weekday: "long",
+      month: "long",
+    });
+
     lines.push("————————");
     lines.push(row.name);
     if (row.email) lines.push(row.email);
@@ -187,12 +202,22 @@ export function dailyReportText(workDate: string, rows: EmployeeDayReport[]) {
     }
 
     lines.push("");
-    lines.push("Tasks due today:");
-    if (row.tasks.length === 0) {
+    lines.push(`Done tasks · ${dateLabel}:`);
+    if (row.doneTasks.length === 0) {
       lines.push("• none");
     } else {
-      for (const task of row.tasks) {
-        lines.push(`• ${task.status} · ${task.priority} · ${task.title}`);
+      for (const task of row.doneTasks) {
+        lines.push(`• ${task.priority} · ${task.title}`);
+      }
+    }
+
+    lines.push("");
+    lines.push(`To Do · ${nextLabel}:`);
+    if (row.todoNextTasks.length === 0) {
+      lines.push("• none");
+    } else {
+      for (const task of row.todoNextTasks) {
+        lines.push(`• ${task.priority} · ${task.title}`);
       }
     }
     lines.push("");
@@ -209,13 +234,27 @@ export function dailyReportHtml(workDate: string, rows: EmployeeDayReport[]) {
   );
   const people = rows
     .map((row) => {
-      const tasks =
-        row.tasks.length === 0
-          ? `<p style="margin:8px 0 0;color:#6b6b6b">No tasks due today.</p>`
-          : `<ul style="margin:8px 0 0;padding-left:18px">${row.tasks
+      const nextLabel = escapeHtml(
+        formatIstDate(row.nextWorkDate, { weekday: "long", month: "long" })
+      );
+
+      const doneList =
+        row.doneTasks.length === 0
+          ? `<p style="margin:8px 0 0;color:#6b6b6b">None.</p>`
+          : `<ul style="margin:8px 0 0;padding-left:18px">${row.doneTasks
               .map(
                 (task) =>
-                  `<li style="margin:0 0 4px">${escapeHtml(task.status)} · ${escapeHtml(task.priority)} · ${escapeHtml(task.title)}</li>`
+                  `<li style="margin:0 0 4px">${escapeHtml(task.priority)} · ${escapeHtml(task.title)}</li>`
+              )
+              .join("")}</ul>`;
+
+      const todoList =
+        row.todoNextTasks.length === 0
+          ? `<p style="margin:8px 0 0;color:#6b6b6b">None.</p>`
+          : `<ul style="margin:8px 0 0;padding-left:18px">${row.todoNextTasks
+              .map(
+                (task) =>
+                  `<li style="margin:0 0 4px">${escapeHtml(task.priority)} · ${escapeHtml(task.title)}</li>`
               )
               .join("")}</ul>`;
 
@@ -235,8 +274,10 @@ export function dailyReportHtml(workDate: string, rows: EmployeeDayReport[]) {
   <p style="margin:8px 0 0"><strong>In:</strong> ${escapeHtml(formatIstTime(row.clockIn))} &nbsp; <strong>Out:</strong> ${escapeHtml(formatIstTime(row.clockOut))}${row.autoClockedOut ? " (auto)" : ""} &nbsp; <strong>Hours:</strong> ${escapeHtml(row.hours)}</p>
   ${delay}
   ${leave}
-  <p style="margin:16px 0 0;font-weight:600">Tasks due today</p>
-  ${tasks}
+  <p style="margin:16px 0 0;font-weight:600">Done tasks · ${dateLabel}</p>
+  ${doneList}
+  <p style="margin:16px 0 0;font-weight:600">To Do · ${nextLabel}</p>
+  ${todoList}
 </section>`;
     })
     .join("\n");
@@ -272,7 +313,7 @@ export async function sendDailyDayReport(workDate: string) {
     return { error: "No employees to include in the report." };
   }
 
-  return sendMail({
+  const mail = await sendMail({
     to: [...DAILY_REPORT_TO],
     cc: [...DAILY_REPORT_CC],
     subject: dailyReportSubject(workDate),
@@ -280,6 +321,35 @@ export async function sendDailyDayReport(workDate: string) {
     html: dailyReportHtml(workDate, rows),
     fromName: "Adsmagnify Clock",
   });
+
+  if (mail.error) return mail;
+
+  try {
+    await rolloverUnfinishedTasks(workDate);
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Report sent, but unfinished tasks could not be moved to the next day.";
+    return { error: message };
+  }
+
+  return mail;
+}
+
+/** Move unfinished tasks due on workDate to the next working day as To Do. */
+export async function rolloverUnfinishedTasks(workDate: string) {
+  const nextDate = nextWorkingDay(workDate);
+  const admin = createAdminClient();
+
+  const { error } = await admin
+    .from("tasks")
+    .update({ due_date: nextDate, status: "To Do" })
+    .eq("due_date", workDate)
+    .neq("status", "Done");
+
+  if (error) throw new Error(error.message);
+  return { nextDate };
 }
 
 async function loadEmployeeDayReports(workDate: string) {

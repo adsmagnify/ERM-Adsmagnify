@@ -7,12 +7,14 @@ import {
   SubmitButton,
   TextInput,
 } from "@/components/form-field";
+import { todayIstDate } from "@/lib/time";
 
 const initial: TaskActionState | null = null;
 
 export function AddTaskForm() {
   const formRef = useRef<HTMLFormElement>(null);
   const [state, action, pending] = useActionState(createTask, initial);
+  const today = todayIstDate();
 
   useEffect(() => {
     if (state?.success) {
@@ -30,7 +32,9 @@ export function AddTaskForm() {
         <div>
           <h2 className="font-heading text-xl font-semibold">Add a task</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            It lands in To Do. Move it when you start.
+            Pick the work date. Done stays for that day; anything still in To
+            Do or In Progress rolls to the next working day in the evening
+            report.
           </p>
         </div>
       </div>
@@ -55,8 +59,14 @@ export function AddTaskForm() {
             <option value="Low">Low</option>
           </select>
         </Field>
-        <Field label="Due date" htmlFor="due_date">
-          <TextInput id="due_date" name="due_date" type="date" required />
+        <Field label="Work date" htmlFor="due_date">
+          <TextInput
+            id="due_date"
+            name="due_date"
+            type="date"
+            required
+            defaultValue={today}
+          />
         </Field>
         <SubmitButton disabled={pending} className="md:mt-7">
           {pending ? "Adding…" : "Add task"}

@@ -1,3 +1,5 @@
+import { addDays } from "@/lib/time";
+
 export function isoWeekday(isoDate: string) {
   const [year, month, day] = isoDate.split("-").map(Number);
   return new Date(Date.UTC(year, month - 1, day)).getUTCDay();
@@ -26,4 +28,13 @@ export function weeklyOffReason(isoDate: string) {
   if (nth === 3) return "3rd Saturday off.";
   if (nth === 5) return "5th Saturday off.";
   return "Weekly off.";
+}
+
+/** Next calendar day that is not a weekly off. */
+export function nextWorkingDay(isoDate: string) {
+  let cursor = addDays(isoDate, 1);
+  while (isWeeklyOff(cursor)) {
+    cursor = addDays(cursor, 1);
+  }
+  return cursor;
 }
