@@ -1,9 +1,14 @@
 export type TaskPriority = "High" | "Medium" | "Low";
 export type TaskStatus = "To Do" | "In Progress" | "Done";
 export type DayStatus = "Full day" | "Half day" | "Leave";
-export type StatusReason = "Late arrival" | "Left early" | "Casual" | "Sick";
+export type StatusReason =
+  | "Late arrival"
+  | "Left early"
+  | "Casual"
+  | "Sick"
+  | "Comp Off";
 export type UserRole = "admin" | "employee";
-export type LeaveKind = "Casual" | "Sick";
+export type LeaveKind = "Casual" | "Sick" | "Comp Off";
 export type LeaveStatus = "Pending" | "Approved" | "Rejected";
 
 
@@ -15,6 +20,10 @@ export type Profile = {
   clock_in_by: string;
   clock_out_after: string;
   wednesday_clock_in_by: string | null;
+  remote_ok: boolean;
+  casual_total: number;
+  sick_total: number;
+  comp_off_total: number;
   created_at: string;
 };
 
@@ -95,6 +104,10 @@ export type Database = {
           clock_in_by?: string;
           clock_out_after?: string;
           wednesday_clock_in_by?: string | null;
+          remote_ok?: boolean;
+          casual_total?: number;
+          sick_total?: number;
+          comp_off_total?: number;
           created_at?: string;
         };
         Update: {
@@ -104,6 +117,10 @@ export type Database = {
           clock_in_by?: string;
           clock_out_after?: string;
           wednesday_clock_in_by?: string | null;
+          remote_ok?: boolean;
+          casual_total?: number;
+          sick_total?: number;
+          comp_off_total?: number;
         };
         Relationships: [];
       };

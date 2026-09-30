@@ -3,7 +3,7 @@
 import { useTransition } from "react";
 import { toast } from "sonner";
 import { deleteEmployee } from "@/app/actions/employees";
-import { setProfileRole } from "@/app/actions/roles";
+import { setProfileRemote, setProfileRole } from "@/app/actions/roles";
 import type { UserRole } from "@/lib/database.types";
 
 export function RoleSwitch({
@@ -37,6 +37,48 @@ export function RoleSwitch({
       >
         <option value="employee">Employee</option>
         <option value="admin">Admin</option>
+      </select>
+    </label>
+  );
+}
+
+export function RemoteSwitch({
+  userId,
+  remoteOk,
+}: {
+  userId: string;
+  remoteOk: boolean;
+}) {
+  const [pending, startTransition] = useTransition();
+
+  function onChange(next: boolean) {
+    if (next === remoteOk) return;
+    startTransition(async () => {
+      const result = await setProfileRemote(userId, next);
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(
+        next
+          ? "Remote clock on. No office GPS or IP needed."
+          : "Remote clock off. Office GPS and IP required."
+      );
+    });
+  }
+
+  return (
+    <label className="flex items-center gap-2 text-sm text-muted-foreground">
+      Work from home
+      <select
+        value={remoteOk ? "yes" : "no"}
+        disabled={pending}
+        aria-label="Work from home clock access"
+        onChange={(event) => onChange(event.target.value === "yes")}
+        className="h-10 cursor-pointer rounded-2xl border border-border bg-transparent px-3 text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
+      >
+        <option value="no">Office only</option>
+        <option value="yes">Remote OK</option>
       </select>
     </label>
   );

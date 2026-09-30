@@ -12,6 +12,7 @@ type ClockButtonsProps = {
   clockedOut: boolean;
   inTime: string;
   outTime: string;
+  remoteOk?: boolean;
 };
 
 export function ClockButtons({
@@ -19,13 +20,14 @@ export function ClockButtons({
   clockedOut,
   inTime,
   outTime,
+  remoteOk = false,
 }: ClockButtonsProps) {
   const [pending, startTransition] = useTransition();
 
   function onClockIn() {
     startTransition(async () => {
       try {
-        const fix = await getCurrentFix();
+        const fix = remoteOk ? {} : await getCurrentFix();
         const result = await clockIn(fix);
         if (result.error) {
           toast.error(result.error);
@@ -43,7 +45,7 @@ export function ClockButtons({
   function onClockOut() {
     startTransition(async () => {
       try {
-        const fix = await getCurrentFix();
+        const fix = remoteOk ? {} : await getCurrentFix();
         const result = await clockOut(fix);
         if (result.error) {
           toast.error(result.error);

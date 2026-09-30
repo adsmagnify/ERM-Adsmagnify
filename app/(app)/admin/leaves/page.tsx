@@ -16,14 +16,13 @@ export default async function AdminLeavesPage() {
     supabase
       .from("profiles")
       .select(
-        "id, full_name, email, role, created_at, clock_in_by, clock_out_after, wednesday_clock_in_by"
+        "id, full_name, email, role, created_at, clock_in_by, clock_out_after, wednesday_clock_in_by, remote_ok, casual_total, sick_total, comp_off_total"
       )
       .order("created_at", { ascending: true }),
     supabase
       .from("leave_requests")
       .select("id, user_id, kind, from_date, to_date, reason, status, created_at")
-      .order("created_at", { ascending: false })
-      .limit(80),
+      .order("created_at", { ascending: false }),
   ]);
 
   return (

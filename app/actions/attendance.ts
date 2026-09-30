@@ -16,9 +16,9 @@ import { todayIstDate } from "@/lib/time";
 export type ActionResult = { error?: string };
 
 export type ClockPayload = {
-  lat: number;
-  lng: number;
-  accuracy: number;
+  lat?: number | null;
+  lng?: number | null;
+  accuracy?: number | null;
 };
 
 async function requireEmployeeClock(payload: ClockPayload) {
@@ -31,7 +31,7 @@ async function requireEmployeeClock(payload: ClockPayload) {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, remote_ok")
     .eq("id", userId)
     .maybeSingle();
 
@@ -39,11 +39,25 @@ async function requireEmployeeClock(payload: ClockPayload) {
     return { ok: false as const, error: "Admins do not clock in or out." };
   }
 
-  const [office, ip] = await Promise.all([
-    loadOfficeSettings(supabase),
-    getClientPublicIp(),
-  ]);
-  const presence = assertAtOffice(office, ip, payload);
+  const ip = await getClientPublicIp();
+
+  if (profile?.remote_ok) {
+    return {
+      ok: true as const,
+      userId,
+      ip,
+      fix: null,
+      office: null,
+      learnIp: false,
+    };
+  }
+
+  const office = await loadOfficeSettings(supabase);
+  const presence = assertAtOffice(office, ip, {
+    lat: payload.lat ?? undefined,
+    lng: payload.lng ?? undefined,
+    accuracy: payload.accuracy ?? undefined,
+  });
 
   if (presence.error) {
     return { ok: false as const, error: presence.error };
@@ -59,7 +73,7 @@ async function requireEmployeeClock(payload: ClockPayload) {
   };
 }
 
-export async function clockIn(payload: ClockPayload): Promise<ActionResult> {
+export async function clockIn(payload: ClockPayload = {}): Promise<ActionResult> {
   const ready = await requireEmployeeClock(payload);
   if (!ready.ok) {
     return { error: ready.error };
@@ -120,7 +134,7 @@ export async function clockIn(payload: ClockPayload): Promise<ActionResult> {
   return {};
 }
 
-export async function clockOut(payload: ClockPayload): Promise<ActionResult> {
+export async function clockOut(payload: ClockPayload = {}): Promise<ActionResult> {
   const ready = await requireEmployeeClock(payload);
   if (!ready.ok) {
     return { error: ready.error };

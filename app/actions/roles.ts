@@ -53,3 +53,42 @@ export async function setProfileRole(targetUserId: string, role: UserRole) {
   revalidatePath("/admin/people");
   return {};
 }
+
+export async function setProfileRemote(targetUserId: string, remoteOk: boolean) {
+  const supabase = await createClient();
+  const actorId = await getAuthUserId(supabase);
+
+  if (!actorId) {
+    return { error: "You need to be signed in." };
+  }
+
+  const { data: actor } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", actorId)
+    .maybeSingle();
+
+  if (actor?.role !== "admin") {
+    return { error: "Only an admin can change remote clock access." };
+  }
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ remote_ok: remoteOk })
+    .eq("id", targetUserId);
+
+  if (error) {
+    if (/remote_ok/i.test(error.message) && /schema cache|column/i.test(error.message)) {
+      return {
+        error:
+          "Remote clock is not set up yet. Run supabase/migrations/20260322000000_remote_ok.sql in the Supabase SQL Editor, then try again.",
+      };
+    }
+    return { error: error.message };
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/people");
+  revalidatePath("/");
+  return {};
+}

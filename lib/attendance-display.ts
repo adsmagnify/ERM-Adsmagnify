@@ -42,7 +42,9 @@ export function dayDisplayStatus(
   if (!row?.clock_in && (row?.status === "Leave" || (leave && leave.status !== "Rejected"))) {
     const kind =
       row?.status === "Leave" &&
-      (row.status_reason === "Casual" || row.status_reason === "Sick")
+      (row.status_reason === "Casual" ||
+        row.status_reason === "Sick" ||
+        row.status_reason === "Comp Off")
         ? row.status_reason
         : leave?.kind;
     const leaveStatus = leave?.status ?? "Approved";

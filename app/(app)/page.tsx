@@ -72,6 +72,7 @@ export default async function ClockPage() {
         schedule={scheduleFromProfile(profile)}
         delayNotice={(delayRow as DelayNotice | null) ?? null}
         leaves={(leaveRows ?? []) as LeaveRequest[]}
+        remoteOk={Boolean(profile?.remote_ok)}
       />
     </main>
   );

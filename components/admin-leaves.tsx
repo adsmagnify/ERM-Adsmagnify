@@ -1,5 +1,7 @@
 import { AdminLeaveStatus } from "@/components/admin-leave-status";
+import { LeaveBalanceTable } from "@/components/leave-balance-table";
 import type { LeaveRequest, Profile } from "@/lib/database.types";
+import { leaveTotalsFromProfile, leaveYear } from "@/lib/leave-balance";
 import { formatIstDateRange } from "@/lib/time";
 
 const statusRank = {
@@ -15,6 +17,15 @@ export function AdminLeaves({
   people: Profile[];
   leaves: LeaveRequest[];
 }) {
+  const year = leaveYear();
+  const employees = people
+    .filter((person) => person.role === "employee")
+    .sort((a, b) =>
+      (a.full_name?.trim() || a.email || "").localeCompare(
+        b.full_name?.trim() || b.email || ""
+      )
+    );
+
   const names = Object.fromEntries(
     people.map((person) => [
       person.id,
@@ -29,7 +40,7 @@ export function AdminLeaves({
   });
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 pb-20 pt-10 sm:px-10 lg:px-12">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 pb-20 pt-10 sm:px-10 lg:px-12">
       <section>
         <h2 className="font-heading text-xl font-medium">Leave requests</h2>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -68,6 +79,47 @@ export function AdminLeaves({
           ))}
         </ul>
       )}
+
+      <section className="flex flex-col gap-5">
+        <div>
+          <h2 className="font-heading text-xl font-medium">
+            Team leave balances · {year}
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Total, used, pending, and remaining for each employee. Used updates
+            when you approve a request.
+          </p>
+        </div>
+
+        {employees.length === 0 ? (
+          <p className="rounded-[20px] border border-border bg-white px-6 py-10 text-sm text-muted-foreground">
+            No employees yet.
+          </p>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {employees.map((person) => {
+              const name =
+                person.full_name?.trim() || person.email || "Employee";
+              const theirLeaves = leaves.filter(
+                (row) => row.user_id === person.id
+              );
+              return (
+                <LeaveBalanceTable
+                  key={person.id}
+                  leaves={theirLeaves}
+                  totals={leaveTotalsFromProfile(person)}
+                  title={`${name} · ${year}`}
+                  description={
+                    person.email
+                      ? `${person.email}. Weekly offs are not counted.`
+                      : "Weekly offs are not counted."
+                  }
+                />
+              );
+            })}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

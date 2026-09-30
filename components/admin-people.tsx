@@ -1,4 +1,5 @@
 import {
+  RemoteSwitch,
   RemoveEmployee,
   RoleSwitch,
 } from "@/components/admin-team-actions";
@@ -65,6 +66,7 @@ export function AdminPeople({
                         {isDefaultSchedule(schedule)
                           ? "10:45 AM – 7:00 PM"
                           : scheduleSummary(schedule)}
+                        {person.remote_ok ? " · Work from home" : ""}
                       </p>
                     ) : null}
                   </div>
@@ -74,6 +76,12 @@ export function AdminPeople({
                       role={person.role}
                       isSelf={person.id === currentUserId}
                     />
+                    {person.role === "employee" ? (
+                      <RemoteSwitch
+                        userId={person.id}
+                        remoteOk={Boolean(person.remote_ok)}
+                      />
+                    ) : null}
                     {person.id !== currentUserId ? (
                       <RemoveEmployee userId={person.id} name={name} />
                     ) : null}

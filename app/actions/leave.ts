@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getAuthUserId } from "@/lib/auth-user";
 import type { LeaveKind } from "@/lib/database.types";
+import { LEAVE_KINDS } from "@/lib/leave-balance";
 import { sendLeaveEmail } from "@/lib/smtp";
 import { createClient } from "@/lib/supabase/server";
 import { isIsoDate, todayIstDate } from "@/lib/time";
@@ -12,7 +13,7 @@ export type LeaveActionState = {
   success?: boolean;
 };
 
-const kinds: LeaveKind[] = ["Casual", "Sick"];
+const kinds: LeaveKind[] = LEAVE_KINDS;
 
 function formString(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
@@ -37,7 +38,7 @@ export async function requestLeave(
   const reason = formString(formData, "reason");
 
   if (!kinds.includes(kind)) {
-    return { error: "Choose casual or sick leave." };
+    return { error: "Choose casual, sick, or comp off leave." };
   }
 
   if (!isIsoDate(fromDate) || !isIsoDate(toDate)) {

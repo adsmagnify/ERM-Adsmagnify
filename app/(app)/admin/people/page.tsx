@@ -17,7 +17,7 @@ export default async function AdminPeoplePage() {
     supabase
       .from("profiles")
       .select(
-        "id, full_name, email, role, created_at, clock_in_by, clock_out_after, wednesday_clock_in_by"
+        "id, full_name, email, role, created_at, clock_in_by, clock_out_after, wednesday_clock_in_by, remote_ok, casual_total, sick_total, comp_off_total"
       )
       .order("created_at", { ascending: true }),
     loadOfficeSettings(supabase),

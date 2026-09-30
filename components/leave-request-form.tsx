@@ -6,10 +6,11 @@ import { requestLeave } from "@/app/actions/leave";
 import { Field, fieldInputClass, SubmitButton } from "@/components/form-field";
 import type { LeaveKind } from "@/lib/database.types";
 import { LEAVE_EMAIL_CC, LEAVE_EMAIL_TO } from "@/lib/leave-email";
+import { LEAVE_KIND_SHORT, LEAVE_KINDS } from "@/lib/leave-balance";
 import { todayIstDate } from "@/lib/time";
 import { cn } from "@/lib/utils";
 
-const kinds: LeaveKind[] = ["Casual", "Sick"];
+const kinds: LeaveKind[] = LEAVE_KINDS;
 
 export function LeaveRequestForm() {
   const [pending, startTransition] = useTransition();
@@ -50,18 +51,18 @@ export function LeaveRequestForm() {
     >
       <h2 className="font-heading text-xl font-semibold">Request leave</h2>
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-        Casual or sick. An admin will approve or reject it. This emails{" "}
+      Casual or sick or comp off. An admin will approve or reject it. This emails{" "}
         {LEAVE_EMAIL_TO}, with {LEAVE_EMAIL_CC.join(", ")} on cc.
       </p>
 
       <fieldset className="mt-6">
         <legend className="text-sm text-muted-foreground">Type</legend>
-        <div className="mt-2 grid grid-cols-2 gap-2">
+        <div className="mt-2 grid grid-cols-3 gap-2">
           {kinds.map((option) => (
             <label
               key={option}
               className={cn(
-                "flex h-12 cursor-pointer items-center justify-center rounded-2xl text-base font-medium transition-colors",
+                "flex h-12 cursor-pointer items-center justify-center rounded-2xl text-sm font-medium transition-colors sm:text-base",
                 kind === option
                   ? "bg-foreground text-white"
                   : "border border-border text-muted-foreground hover:text-foreground"
@@ -75,10 +76,13 @@ export function LeaveRequestForm() {
                 onChange={() => setKind(option)}
                 className="sr-only"
               />
-              {option}
+              {LEAVE_KIND_SHORT[option]}
             </label>
           ))}
         </div>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {kind} ({LEAVE_KIND_SHORT[kind]})
+        </p>
       </fieldset>
 
       <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-2">

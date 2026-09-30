@@ -1,14 +1,16 @@
 import { redirect } from "next/navigation";
+import { LeaveBalanceTable } from "@/components/leave-balance-table";
 import { LeaveRequestForm } from "@/components/leave-request-form";
 import { LeaveStatusPill } from "@/components/leave-status-pill";
 import type { LeaveRequest } from "@/lib/database.types";
+import { leaveTotalsFromProfile } from "@/lib/leave-balance";
 import { requireProfile } from "@/lib/require-profile";
 import { formatIstDateRange } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
 
 export default async function LeavesPage() {
-  const { supabase, user, isAdmin } = await requireProfile();
+  const { supabase, user, isAdmin, profile } = await requireProfile();
 
   if (isAdmin) {
     redirect("/admin/leaves");
@@ -58,6 +60,11 @@ export default async function LeavesPage() {
           </ul>
         )}
       </section>
+
+      <LeaveBalanceTable
+        leaves={leaves}
+        totals={leaveTotalsFromProfile(profile)}
+      />
     </main>
   );
 }

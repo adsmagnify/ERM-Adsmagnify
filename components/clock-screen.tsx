@@ -24,6 +24,7 @@ type ClockScreenProps = {
   schedule?: WorkSchedule;
   delayNotice?: DelayNotice | null;
   leaves?: LeaveRequest[];
+  remoteOk?: boolean;
 };
 
 function displayStatus(
@@ -55,6 +56,7 @@ export function ClockScreen({
   schedule = DEFAULT_SCHEDULE,
   delayNotice = null,
   leaves = [],
+  remoteOk = false,
 }: ClockScreenProps) {
   const date = todayIstDate();
   const todayLeave = leaveOnDate(leaves, date);
@@ -89,6 +91,7 @@ export function ClockScreen({
               ? `${formatIstTime(today.clock_out)}${today.auto_clocked_out ? " (auto)" : ""}`
               : "Not yet"
           }
+          remoteOk={remoteOk}
         />
         {offToday || leaveToday ? null : (
           <p className="text-center text-sm leading-relaxed text-muted-foreground">
@@ -96,9 +99,9 @@ export function ClockScreen({
           </p>
         )}
         <p className="text-center text-sm text-muted-foreground">
-          Clock in and out from the Churchgate office. If the internet address
-          changes, clocking in here updates the saved office IP. If you forget
-          to clock out, the day closes at 9:00 PM IST.
+          {remoteOk
+            ? "You can clock in and out from home. Office GPS and network are not required. If you forget to clock out, the day closes at 9:00 PM IST."
+            : "Clock in and out from the Churchgate office. If the internet address changes, clocking in here updates the saved office IP. If you forget to clock out, the day closes at 9:00 PM IST."}
         </p>
         {!today?.clock_in && !offToday && !leaveToday ? (
           <p className="text-center text-sm text-muted-foreground">
