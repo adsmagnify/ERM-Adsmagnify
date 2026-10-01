@@ -87,23 +87,34 @@ export function buildEmployeeDayReport(
   const leave = pickLeave(leaves);
   const nextWorkDate = nextWorkingDay(workDate);
 
+  // Done = completed work dated for this report day only.
   const doneTasks = tasks
-    .filter((task) => task.status === "Done")
+    .filter(
+      (task) => task.due_date === workDate && task.status === "Done"
+    )
     .sort(
       (a, b) => taskPriorityOrder[a.priority] - taskPriorityOrder[b.priority]
     )
     .map(taskFields);
 
-  const todoNextTasks = tasks
-    .filter((task) => task.status !== "Done")
-    .sort(
-      (a, b) => taskPriorityOrder[a.priority] - taskPriorityOrder[b.priority]
-    )
-    .map((task) => ({
+  // To Do for next day = unfinished today (will roll) + anything already dated next day.
+  const todoSeen = new Set<string>();
+  const todoNextTasks: DailyReportTask[] = [];
+  for (const task of tasks) {
+    if (task.status === "Done") continue;
+    const dueToday = task.due_date === workDate;
+    const dueNext = task.due_date === nextWorkDate;
+    if (!dueToday && !dueNext) continue;
+    if (todoSeen.has(task.id)) continue;
+    todoSeen.add(task.id);
+    todoNextTasks.push({
       ...taskFields(task),
-      // Report unfinished work as To Do for the next working day.
-      status: "To Do" as TaskStatus,
-    }));
+      status: "To Do",
+    });
+  }
+  todoNextTasks.sort(
+    (a, b) => taskPriorityOrder[a.priority] - taskPriorityOrder[b.priority]
+  );
 
   const base = {
     name,
@@ -354,6 +365,7 @@ export async function rolloverUnfinishedTasks(workDate: string) {
 
 async function loadEmployeeDayReports(workDate: string) {
   const admin = createAdminClient();
+  const nextDate = nextWorkingDay(workDate);
   const [{ data: people, error: peopleError }, { data: attendance, error: attendanceError }, { data: delays, error: delayError }, { data: leaves, error: leaveError }, { data: tasks, error: taskError }] =
     await Promise.all([
       admin
@@ -381,7 +393,7 @@ async function loadEmployeeDayReports(workDate: string) {
       admin
         .from("tasks")
         .select("id, user_id, title, priority, status, due_date, created_at")
-        .eq("due_date", workDate),
+        .in("due_date", [workDate, nextDate]),
     ]);
 
   const firstError =
