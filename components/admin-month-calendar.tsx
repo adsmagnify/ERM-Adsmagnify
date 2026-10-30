@@ -8,7 +8,8 @@ import {
   todayIstDate,
   type CalendarCell,
 } from "@/lib/time";
-import { isWeeklyOff, weeklyOffReason } from "@/lib/workdays";
+import { isCompanyHoliday } from "@/lib/holidays";
+import { isWeeklyOff, offDayReason, weeklyOffReason } from "@/lib/workdays";
 
 export type DayPresence = {
   clocked: number;
@@ -103,7 +104,7 @@ function CalendarDay({
   const dayNumber = Number(cell.date.slice(8, 10));
   const clocked = presence?.clocked ?? 0;
   const halfDay = presence?.halfDay ?? 0;
-  const off = isWeeklyOff(cell.date);
+  const off = isWeeklyOff(cell.date) || isCompanyHoliday(cell.date);
   const label = dateLabel(cell.date, clocked, halfDay, selected, isToday, off);
 
   return (
@@ -180,7 +181,11 @@ function dateLabel(
   const parts = [readable];
   if (isToday) parts.push("today");
   if (selected) parts.push("selected");
-  if (off) parts.push(weeklyOffReason(date).replace(/\.$/, ""));
+  if (off) {
+    parts.push(
+      (offDayReason(date) ?? weeklyOffReason(date)).replace(/\.$/, "")
+    );
+  }
   if (clocked > 0) {
     parts.push(`${clocked} clocked in`);
   }

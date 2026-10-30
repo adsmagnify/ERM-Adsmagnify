@@ -16,7 +16,8 @@ import {
   formatWorkedHours,
   todayIstDate,
 } from "@/lib/time";
-import { isWeeklyOff, nextWorkingDay, weeklyOffReason } from "@/lib/workdays";
+import { isCompanyHoliday } from "@/lib/holidays";
+import { isWeeklyOff, nextWorkingDay, offDayReason, weeklyOffReason } from "@/lib/workdays";
 
 export const DAILY_REPORT_TO = [
   "adsmagnify@gmail.com",
@@ -126,11 +127,11 @@ export function buildEmployeeDayReport(
     nextWorkDate,
   };
 
-  if (isWeeklyOff(workDate) && !attendance?.clock_in) {
+  if ((isWeeklyOff(workDate) || isCompanyHoliday(workDate)) && !attendance?.clock_in) {
     return {
       ...base,
       status: "Off",
-      statusNote: weeklyOffReason(workDate).replace(/\.$/, ""),
+      statusNote: (offDayReason(workDate) ?? weeklyOffReason(workDate)).replace(/\.$/, ""),
       clockIn: null,
       clockOut: null,
       autoClockedOut: false,

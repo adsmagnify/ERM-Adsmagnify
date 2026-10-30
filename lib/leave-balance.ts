@@ -1,6 +1,6 @@
 import type { LeaveKind, LeaveRequest } from "@/lib/database.types";
 import { addDays, todayIstDate } from "@/lib/time";
-import { isWeeklyOff } from "@/lib/workdays";
+import { isOffDay } from "@/lib/workdays";
 
 export const LEAVE_KINDS: LeaveKind[] = ["Casual", "Sick", "Comp Off"];
 
@@ -43,14 +43,14 @@ export function leaveTotalsFromProfile(profile?: {
   };
 }
 
-/** Working days in a date range, skipping weekly offs. */
+/** Working days in a date range, skipping weekly offs and company holidays. */
 export function workingDaysBetween(fromDate: string, toDate: string) {
   if (toDate < fromDate) return 0;
 
   let count = 0;
   let cursor = fromDate;
   while (cursor <= toDate) {
-    if (!isWeeklyOff(cursor)) count += 1;
+    if (!isOffDay(cursor)) count += 1;
     cursor = addDays(cursor, 1);
   }
   return count;

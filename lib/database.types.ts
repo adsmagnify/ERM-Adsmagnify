@@ -91,6 +91,11 @@ export type LeaveRequest = {
   created_at: string;
 };
 
+export type Holiday = {
+  work_date: string;
+  name: string;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -224,6 +229,17 @@ export type Database = {
         };
         Update: {
           status?: LeaveStatus;
+        };
+        Relationships: [];
+      };
+      holidays: {
+        Row: Holiday;
+        Insert: {
+          work_date: string;
+          name?: string;
+        };
+        Update: {
+          name?: string;
         };
         Relationships: [];
       }; 

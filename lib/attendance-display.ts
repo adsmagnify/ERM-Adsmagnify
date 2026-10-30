@@ -1,4 +1,5 @@
 import type { Attendance, LeaveRequest } from "@/lib/database.types";
+import { holidayName, isCompanyHoliday } from "@/lib/holidays";
 import { formatClockTime, type WorkSchedule } from "@/lib/schedule";
 import { isWeeklyOff, weeklyOffReason } from "@/lib/workdays";
 
@@ -8,6 +9,7 @@ export type DisplayStatus =
   | "Full day"
   | "Half day"
   | "Off"
+  | "Holiday"
   | "Leave";
 
 export function leaveOnDate(leaves: LeaveRequest[], workDate: string) {
@@ -31,6 +33,13 @@ export function dayDisplayStatus(
   leave?: Pick<LeaveRequest, "kind" | "status"> | null
 ) {
   const date = row?.work_date ?? workDate ?? null;
+
+  if (date && isCompanyHoliday(date) && !row?.clock_in) {
+    return {
+      status: "Holiday" as const,
+      reason: holidayName(date),
+    };
+  }
 
   if (date && isWeeklyOff(date) && !row?.clock_in) {
     return {

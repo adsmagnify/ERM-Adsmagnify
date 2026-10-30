@@ -4,6 +4,7 @@ import {
   AdminMonthCalendar,
   type DayPresence,
 } from "@/components/admin-month-calendar";
+import { ExportAttendanceButton } from "@/components/export-attendance-button";
 import { SendDailyReportButton } from "@/components/send-daily-report-button";
 import { StatusPill } from "@/components/status-pill";
 import { dayDisplayStatus, leaveOnDate } from "@/lib/attendance-display";
@@ -32,6 +33,7 @@ const statusRank = {
   Leave: 3,
   "Not started": 4,
   Off: 5,
+  Holiday: 6,
 } as const;
 
 function hoursLabel(row: Attendance | null, workDate: string) {
@@ -86,11 +88,13 @@ export function AdminToday({
     });
 
   const offDay = isWeeklyOff(workDate);
+  const holidayDay = rows.some((row) => row.status === "Holiday");
   const counts = {
     inOffice: rows.filter((row) => row.status === "In progress").length,
     notStarted: rows.filter((row) => row.status === "Not started").length,
     leave: rows.filter((row) => row.status === "Leave").length,
     off: rows.filter((row) => row.status === "Off").length,
+    holiday: rows.filter((row) => row.status === "Holiday").length,
     fullDay: rows.filter((row) => row.status === "Full day").length,
     halfDay: rows.filter((row) => row.status === "Half day").length,
   };
@@ -106,12 +110,17 @@ export function AdminToday({
             {viewingToday ? "Team today" : "Team"}
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            {offDay
-              ? weeklyOffReason(workDate)
-              : "Open any date for in and out times. After clock out you can switch Half day and Full day."}
+            {holidayDay
+              ? "Company holiday. Not marked absent."
+              : offDay
+                ? weeklyOffReason(workDate)
+                : "Open any date for in and out times. After clock out you can switch Half day and Full day."}
           </p>
         </div>
-        <SendDailyReportButton workDate={workDate} />
+        <div className="flex flex-wrap items-center gap-2">
+          <ExportAttendanceButton />
+          <SendDailyReportButton workDate={workDate} />
+        </div>
       </section>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] xl:items-start">
@@ -122,8 +131,22 @@ export function AdminToday({
             value={counts.inOffice}
           />
           <Stat
-            label={offDay ? "Off" : viewingToday ? "Not in yet" : "No clock-in"}
-            value={offDay ? counts.off : counts.notStarted}
+            label={
+              holidayDay
+                ? "Holiday"
+                : offDay
+                  ? "Off"
+                  : viewingToday
+                    ? "Not in yet"
+                    : "No clock-in"
+            }
+            value={
+              holidayDay
+                ? counts.holiday
+                : offDay
+                  ? counts.off
+                  : counts.notStarted
+            }
           />
           <Stat label="Full day" value={counts.fullDay} />
           <Stat label="Half day" value={counts.halfDay} tone="warn" />
@@ -217,7 +240,7 @@ type TeamRow = {
   delay: DelayNotice | null;
   leave: LeaveRequest | null;
   name: string;
-  status: "Not started" | "In progress" | "Full day" | "Half day" | "Off" | "Leave";
+  status: "Not started" | "In progress" | "Full day" | "Half day" | "Off" | "Holiday" | "Leave";
   reason: string | null;
 };
 

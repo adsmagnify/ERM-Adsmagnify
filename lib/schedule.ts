@@ -83,6 +83,13 @@ export function scheduleForNewEmployee(fullName: string, email: string) {
       wednesday_clock_in_by: null,
     };
   }
+  if (haystack.includes("sumati")) {
+    return {
+      clock_in_by: "11:00:00",
+      clock_out_after: "16:00:00",
+      wednesday_clock_in_by: null,
+    };
+  }
   return {};
 }
 

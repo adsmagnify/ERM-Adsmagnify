@@ -1,7 +1,7 @@
 import { cronAuthorized } from "@/lib/cron-auth";
 import { sendDailyDayReport } from "@/lib/daily-report";
 import { todayIstDate } from "@/lib/time";
-import { isWeeklyOff, weeklyOffReason } from "@/lib/workdays";
+import { isOffDay, offDayReason, weeklyOffReason } from "@/lib/workdays";
 
 export async function GET(request: Request) {
   if (!cronAuthorized(request)) {
@@ -9,8 +9,11 @@ export async function GET(request: Request) {
   }
 
   const workDate = todayIstDate();
-  if (isWeeklyOff(workDate)) {
-    return Response.json({ ok: true, skipped: weeklyOffReason(workDate) });
+  if (isOffDay(workDate)) {
+    return Response.json({
+      ok: true,
+      skipped: offDayReason(workDate) ?? weeklyOffReason(workDate),
+    });
   }
 
   const result = await sendDailyDayReport(workDate);

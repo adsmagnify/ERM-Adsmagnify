@@ -1,3 +1,4 @@
+import { holidayName, isCompanyHoliday } from "@/lib/holidays";
 import { addDays } from "@/lib/time";
 
 export function isoWeekday(isoDate: string) {
@@ -30,10 +31,21 @@ export function weeklyOffReason(isoDate: string) {
   return "Weekly off.";
 }
 
-/** Next calendar day that is not a weekly off. */
+export function isOffDay(isoDate: string) {
+  return isWeeklyOff(isoDate) || isCompanyHoliday(isoDate);
+}
+
+export function offDayReason(isoDate: string) {
+  const holiday = holidayName(isoDate);
+  if (holiday) return holiday;
+  if (isWeeklyOff(isoDate)) return weeklyOffReason(isoDate);
+  return null;
+}
+
+/** Next calendar day that is not a weekly off or company holiday. */
 export function nextWorkingDay(isoDate: string) {
   let cursor = addDays(isoDate, 1);
-  while (isWeeklyOff(cursor)) {
+  while (isOffDay(cursor)) {
     cursor = addDays(cursor, 1);
   }
   return cursor;

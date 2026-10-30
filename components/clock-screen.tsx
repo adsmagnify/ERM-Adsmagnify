@@ -16,7 +16,7 @@ import {
   recentDateRange,
   todayIstDate,
 } from "@/lib/time";
-import { isWeeklyOff, weeklyOffReason } from "@/lib/workdays";
+import { isOffDay, offDayReason, weeklyOffReason } from "@/lib/workdays";
 
 type ClockScreenProps = {
   today: Attendance | null;
@@ -35,7 +35,7 @@ function displayStatus(
 ) {
   const date = todayIstDate();
   const { status, reason } = dayDisplayStatus(today, schedule, date, leave);
-  if (status === "Off" || status === "Leave") {
+  if (status === "Off" || status === "Leave" || status === "Holiday") {
     return { status, reason };
   }
   if (status === "Not started" && delayNotice) {
@@ -63,7 +63,7 @@ export function ClockScreen({
   const { status, reason } = displayStatus(today, schedule, delayNotice, todayLeave);
   const byDate = new Map(recent.map((row) => [row.work_date, row]));
   const days = recentDateRange(8);
-  const offToday = isWeeklyOff(date) && !today?.clock_in;
+  const offToday = isOffDay(date) && !today?.clock_in;
   const leaveToday = status === "Leave";
 
   return (
@@ -75,7 +75,8 @@ export function ClockScreen({
       <div className="flex flex-col gap-4">
         {offToday ? (
           <p className="rounded-[20px] border border-border bg-white px-6 py-8 text-center text-sm leading-relaxed text-muted-foreground">
-            {weeklyOffReason(date)} Clock in only if you are working today.
+            {offDayReason(date) ?? weeklyOffReason(date)} Clock in only if you
+            are working today.
           </p>
         ) : leaveToday ? (
           <p className="rounded-[20px] border border-border bg-white px-6 py-8 text-center text-sm leading-relaxed text-muted-foreground">
@@ -141,6 +142,7 @@ export function ClockScreen({
           {days.map((date) => {
             const row = byDate.get(date);
             const leave = leaveOnDate(leaves, date);
+            const display = dayDisplayStatus(row ?? null, schedule, date, leave);
             return (
               <li
                 key={date}
@@ -162,26 +164,8 @@ export function ClockScreen({
                   </div>
                   <StatusPill
                     className="items-start sm:items-end"
-                    status={
-                      !row?.clock_in && isWeeklyOff(date)
-                        ? "Off"
-                        : !row?.clock_in && leave
-                          ? "Leave"
-                          : !row?.clock_in
-                            ? "Not started"
-                            : !row.clock_out
-                              ? "In progress"
-                              : ((row.status ?? "Half day") as "Full day" | "Half day")
-                    }
-                    reason={
-                      !row?.clock_in && isWeeklyOff(date)
-                        ? weeklyOffReason(date)
-                        : !row?.clock_in && leave
-                          ? `${leave.kind} · ${leave.status}`
-                          : row?.clock_out
-                            ? row.status_reason
-                            : null
-                    }
+                    status={display.status}
+                    reason={display.reason}
                   />
                 </div>
               </li>

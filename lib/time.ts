@@ -1,12 +1,26 @@
 export const TIMEZONE = "Asia/Kolkata";
 
 export function todayIstDate(): string {
+  return istDateFromInstant(new Date());
+}
+
+export function istDateFromInstant(value: string | Date) {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: TIMEZONE,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).format(new Date());
+  }).format(new Date(value));
+}
+
+export function startOfMonth(isoDate: string) {
+  return `${isoDate.slice(0, 7)}-01`;
+}
+
+export function endOfMonth(isoDate: string) {
+  const [year, month] = isoDate.split("-").map(Number);
+  const last = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  return `${isoDate.slice(0, 7)}-${String(last).padStart(2, "0")}`;
 }
 
 export function addDays(isoDate: string, days: number): string {
