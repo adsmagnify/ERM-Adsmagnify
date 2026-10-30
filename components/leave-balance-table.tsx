@@ -1,5 +1,8 @@
 import type { LeaveRequest } from "@/lib/database.types";
+import { cn } from "@/lib/utils";
 import {
+  countHalfDayLeave,
+  LEAVE_KIND_COLORS,
   leaveBalance,
   leaveTotalsFromProfile,
   leaveYear,
@@ -11,15 +14,22 @@ export function LeaveBalanceTable({
   totals,
   title,
   description,
+  attendance = [],
 }: {
   leaves: LeaveRequest[];
   totals?: LeaveTotals;
   title?: string;
   description?: string;
+  attendance?: { work_date: string; status: string | null }[];
 }) {
   const year = leaveYear();
   const allotment = totals ?? leaveTotalsFromProfile(null);
-  const rows = leaveBalance(leaves, allotment, year);
+  const rows = leaveBalance(
+    leaves,
+    allotment,
+    year,
+    countHalfDayLeave(attendance, year)
+  );
   const summary = rows.reduce(
     (acc, row) => ({
       total: acc.total + row.total,
@@ -37,7 +47,7 @@ export function LeaveBalanceTable({
       </h2>
       <p className="mt-1 text-sm text-muted-foreground">
         {description ??
-          "Used days update when an admin approves a request. Weekly offs are not counted."}
+          "Used days update when an admin approves a request. Half days count as 0.5 casual leave. Weekly offs are not counted."}
       </p>
 
       <div className="mt-5 overflow-x-auto">
@@ -55,8 +65,15 @@ export function LeaveBalanceTable({
             {rows.map((row) => (
               <tr key={row.kind}>
                 <td className="py-3.5 pr-3 font-medium text-foreground">
-                  {row.kind}
-                  <span className="ml-2 text-muted-foreground">({row.short})</span>
+                  <span
+                    className={cn(
+                      "inline-flex rounded-full px-2.5 py-1 text-sm font-medium",
+                      LEAVE_KIND_COLORS[row.kind].className
+                    )}
+                  >
+                    {row.kind}
+                    <span className="ml-1.5 opacity-80">({row.short})</span>
+                  </span>
                 </td>
                 <td className="py-3.5 pr-3 text-right tabular-nums text-foreground">
                   {row.total}

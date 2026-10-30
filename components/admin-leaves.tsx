@@ -1,7 +1,7 @@
 import { AdminLeaveStatus } from "@/components/admin-leave-status";
 import { LeaveBalanceTable } from "@/components/leave-balance-table";
 import type { LeaveRequest, Profile } from "@/lib/database.types";
-import { leaveTotalsFromProfile, leaveYear } from "@/lib/leave-balance";
+import { LEAVE_KIND_COLORS, leaveTotalsFromProfile, leaveYear } from "@/lib/leave-balance";
 import { formatIstDateRange } from "@/lib/time";
 
 const statusRank = {
@@ -13,9 +13,11 @@ const statusRank = {
 export function AdminLeaves({
   people,
   leaves,
+  attendance = [],
 }: {
   people: Profile[];
   leaves: LeaveRequest[];
+  attendance?: { user_id: string; work_date: string; status: string | null }[];
 }) {
   const year = leaveYear();
   const employees = people
@@ -65,7 +67,11 @@ export function AdminLeaves({
                     {names[row.user_id] ?? "Employee"}
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {row.kind}
+                    <span
+                      className={`inline-flex rounded-full px-2.5 py-1 text-sm font-medium ${LEAVE_KIND_COLORS[row.kind].className}`}
+                    >
+                      {row.kind}
+                    </span>
                     <span className="mx-2 text-border">·</span>
                     {formatIstDateRange(row.from_date, row.to_date)}
                   </p>
@@ -86,8 +92,8 @@ export function AdminLeaves({
             Team leave balances · {year}
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Total, used, pending, and remaining for each employee. Used updates
-            when you approve a request.
+            Total, used, pending, and remaining for each employee. Half days
+            count as 0.5 casual leave. Used updates when you approve a request.
           </p>
         </div>
 
@@ -103,16 +109,20 @@ export function AdminLeaves({
               const theirLeaves = leaves.filter(
                 (row) => row.user_id === person.id
               );
+              const theirAttendance = attendance.filter(
+                (row) => row.user_id === person.id
+              );
               return (
                 <LeaveBalanceTable
                   key={person.id}
                   leaves={theirLeaves}
+                  attendance={theirAttendance}
                   totals={leaveTotalsFromProfile(person)}
                   title={`${name} · ${year}`}
                   description={
                     person.email
-                      ? `${person.email}. Weekly offs are not counted.`
-                      : "Weekly offs are not counted."
+                      ? `${person.email}. Half days count as 0.5 CL. Weekly offs are not counted.`
+                      : "Half days count as 0.5 CL. Weekly offs are not counted."
                   }
                 />
               );

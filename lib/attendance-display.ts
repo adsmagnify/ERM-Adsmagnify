@@ -48,6 +48,13 @@ export function dayDisplayStatus(
     };
   }
 
+  if (!row?.clock_in && row?.status === "Full day") {
+    return {
+      status: "Full day" as const,
+      reason: "Forgot to clock in",
+    };
+  }
+
   if (!row?.clock_in && (row?.status === "Leave" || (leave && leave.status !== "Rejected"))) {
     const kind =
       row?.status === "Leave" &&

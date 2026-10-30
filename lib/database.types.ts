@@ -96,6 +96,11 @@ export type Holiday = {
   name: string;
 };
 
+export type DailyReportSend = {
+  work_date: string;
+  sent_at: string;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -240,6 +245,17 @@ export type Database = {
         };
         Update: {
           name?: string;
+        };
+        Relationships: [];
+      };
+      daily_report_sends: {
+        Row: DailyReportSend;
+        Insert: {
+          work_date: string;
+          sent_at?: string;
+        };
+        Update: {
+          sent_at?: string;
         };
         Relationships: [];
       }; 

@@ -10,6 +10,27 @@ export const LEAVE_KIND_SHORT: Record<LeaveKind, string> = {
   "Comp Off": "CO",
 };
 
+export const LEAVE_KIND_COLORS: Record<
+  LeaveKind,
+  { fill: string; font: string; className: string }
+> = {
+  Casual: {
+    fill: "FFE7F3EE",
+    font: "FF1F7A5A",
+    className: "bg-[#e7f3ee] text-[#1f7a5a]",
+  },
+  Sick: {
+    fill: "FFF8ECE9",
+    font: "FFB5432F",
+    className: "bg-[#f8ece9] text-[#b5432f]",
+  },
+  "Comp Off": {
+    fill: "FFECE8F3",
+    font: "FF5B4A7A",
+    className: "bg-[#ece8f3] text-[#5b4a7a]",
+  },
+};
+
 export type LeaveTotals = Record<LeaveKind, number>;
 
 export const EMPTY_LEAVE_TOTALS: LeaveTotals = {
@@ -65,19 +86,34 @@ function daysInYear(fromDate: string, toDate: string, year: number) {
   return workingDaysBetween(start, end);
 }
 
+/** Each attendance half day counts as 0.5 casual leave. */
+export function countHalfDayLeave(
+  attendance: { work_date: string; status: string | null }[],
+  year = leaveYear()
+) {
+  const prefix = `${year}-`;
+  return (
+    attendance.filter(
+      (row) => row.status === "Half day" && row.work_date.startsWith(prefix)
+    ).length * 0.5
+  );
+}
+
 export function leaveBalance(
   leaves: LeaveRequest[],
   totals: LeaveTotals = EMPTY_LEAVE_TOTALS,
-  year = leaveYear()
+  year = leaveYear(),
+  halfDaysAsCasual = 0
 ): LeaveBalanceRow[] {
   return LEAVE_KINDS.map((kind) => {
     const forKind = leaves.filter((row) => row.kind === kind);
-    const used = forKind
-      .filter((row) => row.status === "Approved")
-      .reduce(
-        (sum, row) => sum + daysInYear(row.from_date, row.to_date, year),
-        0
-      );
+    const used =
+      forKind
+        .filter((row) => row.status === "Approved")
+        .reduce(
+          (sum, row) => sum + daysInYear(row.from_date, row.to_date, year),
+          0
+        ) + (kind === "Casual" ? halfDaysAsCasual : 0);
     const pending = forKind
       .filter((row) => row.status === "Pending")
       .reduce(

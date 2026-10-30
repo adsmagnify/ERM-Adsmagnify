@@ -6,7 +6,7 @@ import { requestLeave } from "@/app/actions/leave";
 import { Field, fieldInputClass, SubmitButton } from "@/components/form-field";
 import type { LeaveKind } from "@/lib/database.types";
 import { LEAVE_EMAIL_CC, LEAVE_EMAIL_TO } from "@/lib/leave-email";
-import { LEAVE_KIND_SHORT, LEAVE_KINDS } from "@/lib/leave-balance";
+import { LEAVE_KIND_COLORS, LEAVE_KIND_SHORT, LEAVE_KINDS } from "@/lib/leave-balance";
 import { todayIstDate } from "@/lib/time";
 import { cn } from "@/lib/utils";
 
@@ -64,7 +64,7 @@ export function LeaveRequestForm() {
               className={cn(
                 "flex h-12 cursor-pointer items-center justify-center rounded-2xl text-sm font-medium transition-colors sm:text-base",
                 kind === option
-                  ? "bg-foreground text-white"
+                  ? LEAVE_KIND_COLORS[option].className
                   : "border border-border text-muted-foreground hover:text-foreground"
               )}
             >

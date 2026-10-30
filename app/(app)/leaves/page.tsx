@@ -3,7 +3,7 @@ import { LeaveBalanceTable } from "@/components/leave-balance-table";
 import { LeaveRequestForm } from "@/components/leave-request-form";
 import { LeaveStatusPill } from "@/components/leave-status-pill";
 import type { LeaveRequest } from "@/lib/database.types";
-import { leaveTotalsFromProfile } from "@/lib/leave-balance";
+import { LEAVE_KIND_COLORS, leaveTotalsFromProfile } from "@/lib/leave-balance";
 import { requireProfile } from "@/lib/require-profile";
 import { formatIstDateRange } from "@/lib/time";
 
@@ -16,11 +16,17 @@ export default async function LeavesPage() {
     redirect("/admin/leaves");
   }
 
-  const { data: rows, error } = await supabase
-    .from("leave_requests")
-    .select("id, user_id, kind, from_date, to_date, reason, status, created_at")
-    .eq("user_id", user.id)
-    .order("from_date", { ascending: false });
+  const [{ data: rows, error }, { data: attendance }] = await Promise.all([
+    supabase
+      .from("leave_requests")
+      .select("id, user_id, kind, from_date, to_date, reason, status, created_at")
+      .eq("user_id", user.id)
+      .order("from_date", { ascending: false }),
+    supabase
+      .from("attendance")
+      .select("work_date, status")
+      .eq("user_id", user.id),
+  ]);
 
   const leaves = error ? [] : ((rows ?? []) as LeaveRequest[]);
 
@@ -44,7 +50,11 @@ export default async function LeavesPage() {
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div>
                     <p className="font-heading text-base font-medium">
-                      {row.kind}
+                      <span
+                        className={`inline-flex rounded-full px-2.5 py-1 text-sm font-medium ${LEAVE_KIND_COLORS[row.kind].className}`}
+                      >
+                        {row.kind}
+                      </span>
                     </p>
                     <p className="mt-1 text-sm text-muted-foreground">
                       {formatIstDateRange(row.from_date, row.to_date)}
@@ -63,6 +73,7 @@ export default async function LeavesPage() {
 
       <LeaveBalanceTable
         leaves={leaves}
+        attendance={attendance ?? []}
         totals={leaveTotalsFromProfile(profile)}
       />
     </main>

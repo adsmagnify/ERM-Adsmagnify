@@ -1,6 +1,7 @@
 import { attendanceWorkbookBuffer } from "@/lib/attendance-export";
 import type { Attendance, LeaveRequest, Profile } from "@/lib/database.types";
 import { mergeHolidays, type HolidayMap } from "@/lib/holidays";
+import { mergeRecoveredAttendance } from "@/lib/recovered-attendance";
 import { requireProfile } from "@/lib/require-profile";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { addDays, endOfMonth, startOfMonth, todayIstDate } from "@/lib/time";
@@ -20,11 +21,13 @@ export async function GET() {
     { data: attendance, error: attendanceError },
     { data: leaves, error: leaveError },
     { data: holidayRows, error: holidayError },
+    { data: reportSends, error: reportError },
+    { data: delays, error: delayError },
   ] = await Promise.all([
     admin
       .from("profiles")
       .select(
-        "id, full_name, email, role, created_at, clock_in_by, clock_out_after, wednesday_clock_in_by"
+        "id, full_name, email, role, created_at, clock_in_by, clock_out_after, wednesday_clock_in_by, remote_ok, casual_total, sick_total, comp_off_total"
       )
       .eq("role", "employee")
       .order("full_name", { ascending: true }),
@@ -36,9 +39,12 @@ export async function GET() {
       .order("work_date", { ascending: true }),
     admin
       .from("leave_requests")
-      .select("id, user_id, kind, from_date, to_date, reason, status, created_at")
-      .in("status", ["Pending", "Approved"]),
+      .select("id, user_id, kind, from_date, to_date, reason, status, created_at"),
     admin.from("holidays").select("work_date, name"),
+    admin.from("daily_report_sends").select("work_date, sent_at"),
+    admin
+      .from("delay_notices")
+      .select("id, user_id, work_date, eta, reason, message, created_at"),
   ]);
 
   const firstError = peopleError ?? attendanceError ?? leaveError;
@@ -56,6 +62,15 @@ export async function GET() {
   if (holidayError && !/schema cache|could not find|holidays/i.test(holidayError.message)) {
     return Response.json({ error: holidayError.message }, { status: 500 });
   }
+  if (
+    reportError &&
+    !/schema cache|could not find|daily_report_sends/i.test(reportError.message)
+  ) {
+    return Response.json({ error: reportError.message }, { status: 500 });
+  }
+  if (delayError) {
+    return Response.json({ error: delayError.message }, { status: 500 });
+  }
 
   const employees = ((people ?? []) as Profile[]).map((person) => ({
     ...person,
@@ -64,10 +79,17 @@ export async function GET() {
     sick_total: Number(person.sick_total ?? 0),
     comp_off_total: Number(person.comp_off_total ?? 0),
   }));
-  const rows = (attendance ?? []) as Attendance[];
+  const recovered = mergeRecoveredAttendance(
+    employees,
+    (attendance ?? []) as Attendance[]
+  );
+  const rows = recovered.attendance;
   const today = todayIstDate();
-  const firstAttendance = rows[0]?.work_date;
-  const firstJoined = employees
+  const firstAttendance = [...rows]
+    .map((row) => row.work_date)
+    .filter(Boolean)
+    .sort()[0];
+  const firstJoined = recovered.people
     .map((person) => person.created_at?.slice(0, 10))
     .filter(Boolean)
     .sort()[0];
@@ -76,13 +98,19 @@ export async function GET() {
   );
   const toDate = today < endOfMonth(today) ? today : endOfMonth(today);
 
+  const reportSentDates = new Set(
+    ((reportSends ?? []) as { work_date: string }[]).map((row) => row.work_date)
+  );
+
   const buffer = await attendanceWorkbookBuffer(
-    employees,
+    recovered.people,
     rows,
     (leaves ?? []) as LeaveRequest[],
     holidays,
     fromDate,
-    addDays(toDate, 0)
+    addDays(toDate, 0),
+    reportSentDates,
+    delays ?? []
   );
 
   const filename = `Adsmagnify-attendance-${today}.xlsx`;

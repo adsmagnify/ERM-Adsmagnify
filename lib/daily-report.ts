@@ -337,6 +337,12 @@ export async function sendDailyDayReport(workDate: string) {
   if (mail.error) return mail;
 
   try {
+    await recordDailyReportSent(workDate);
+  } catch {
+    // Email already went out.
+  }
+
+  try {
     await rolloverUnfinishedTasks(workDate);
   } catch (error) {
     const message =
@@ -347,6 +353,17 @@ export async function sendDailyDayReport(workDate: string) {
   }
 
   return mail;
+}
+
+async function recordDailyReportSent(workDate: string) {
+  const admin = createAdminClient();
+  const { error } = await admin.from("daily_report_sends").upsert({
+    work_date: workDate,
+    sent_at: new Date().toISOString(),
+  });
+  if (error && !/schema cache|could not find|daily_report_sends/i.test(error.message)) {
+    throw new Error(error.message);
+  }
 }
 
 /** Move unfinished tasks due on workDate to the next working day as To Do. */
