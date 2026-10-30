@@ -1,18 +1,14 @@
-import type { Profile } from "@/lib/database.types";
+import type { Attendance, Profile } from "@/lib/database.types";
 
 /** IST wall times captured before Sumati's account was deleted. */
 function istInstant(workDate: string, time: string) {
   return new Date(`${workDate}T${time}+05:30`).toISOString();
 }
 
-export type RecoveredAttendance = {
-  user_id: string;
-  work_date: string;
-  clock_in: string | null;
-  clock_out: string | null;
-  status: "Full day" | "Half day" | "Leave" | null;
-  status_reason: "Late arrival" | "Left early" | "Casual" | "Sick" | null;
-};
+export type RecoveredAttendance = Pick<
+  Attendance,
+  "user_id" | "work_date" | "clock_in" | "clock_out" | "status" | "status_reason"
+>;
 
 const SUMATI_ID = "8bb0e383-47b5-450e-92bd-927e18433a53";
 
@@ -86,10 +82,10 @@ const recoveredEmployees = [
   { profile: sumatiProfile, attendance: sumatiAttendance },
 ];
 
-export function mergeRecoveredAttendance<
-  TPerson extends Pick<Profile, "id" | "email">,
-  TRow extends { user_id: string; work_date: string },
->(people: TPerson[], attendance: TRow[]) {
+export function mergeRecoveredAttendance(
+  people: Profile[],
+  attendance: RecoveredAttendance[]
+) {
   const peopleOut = [...people];
   const attendanceOut = [...attendance];
   const recoveredUserIds = new Set<string>();
@@ -106,12 +102,12 @@ export function mergeRecoveredAttendance<
     const userId = live?.id ?? recovered.profile.id;
     recoveredUserIds.add(userId);
     if (!live) {
-      peopleOut.push(recovered.profile as TPerson);
+      peopleOut.push(recovered.profile);
     }
     for (const row of recovered.attendance) {
       const key = `${userId}|${row.work_date}`;
       if (existingKeys.has(key)) continue;
-      attendanceOut.push({ ...row, user_id: userId } as TRow);
+      attendanceOut.push({ ...row, user_id: userId });
       existingKeys.add(key);
     }
   }
