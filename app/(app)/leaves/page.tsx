@@ -24,7 +24,7 @@ export default async function LeavesPage() {
       .order("from_date", { ascending: false }),
     supabase
       .from("attendance")
-      .select("work_date, status")
+      .select("work_date, status, status_reason")
       .eq("user_id", user.id),
   ]);
 

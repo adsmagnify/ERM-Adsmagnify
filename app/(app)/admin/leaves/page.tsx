@@ -24,7 +24,9 @@ export default async function AdminLeavesPage() {
       .from("leave_requests")
       .select("id, user_id, kind, from_date, to_date, reason, status, created_at")
       .order("created_at", { ascending: false }),
-    supabase.from("attendance").select("user_id, work_date, status"),
+    supabase
+      .from("attendance")
+      .select("user_id, work_date, status, status_reason"),
   ]);
 
   return (

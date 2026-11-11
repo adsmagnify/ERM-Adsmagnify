@@ -86,9 +86,25 @@ function daysInYear(fromDate: string, toDate: string, year: number) {
   return workingDaysBetween(start, end);
 }
 
+export type LeaveAttendanceDay = {
+  work_date: string;
+  status: string | null;
+  status_reason?: string | null;
+};
+
+export type LeaveUsageEntry = {
+  id: string;
+  kind: LeaveKind;
+  label: string;
+  detail: string;
+  days: number;
+  state: "Used" | "Pending";
+  sortDate: string;
+};
+
 /** Each attendance half day counts as 0.5 casual leave. */
 export function countHalfDayLeave(
-  attendance: { work_date: string; status: string | null }[],
+  attendance: LeaveAttendanceDay[],
   year = leaveYear()
 ) {
   const prefix = `${year}-`;
@@ -97,6 +113,57 @@ export function countHalfDayLeave(
       (row) => row.status === "Half day" && row.work_date.startsWith(prefix)
     ).length * 0.5
   );
+}
+
+/** Line items that make up used and pending leave for the year. */
+export function leaveUsageEntries(
+  leaves: LeaveRequest[],
+  attendance: LeaveAttendanceDay[] = [],
+  year = leaveYear()
+): LeaveUsageEntry[] {
+  const yearStart = `${year}-01-01`;
+  const yearEnd = `${year}-12-31`;
+  const entries: LeaveUsageEntry[] = [];
+
+  for (const leave of leaves) {
+    if (leave.status !== "Approved" && leave.status !== "Pending") continue;
+    const days = daysInYear(leave.from_date, leave.to_date, year);
+    if (days <= 0) continue;
+    entries.push({
+      id: `leave-${leave.id}`,
+      kind: leave.kind,
+      label:
+        leave.from_date === leave.to_date
+          ? leave.from_date
+          : `${leave.from_date} – ${leave.to_date}`,
+      detail: leave.reason?.trim() || `${leave.kind} leave`,
+      days,
+      state: leave.status === "Approved" ? "Used" : "Pending",
+      sortDate: leave.from_date,
+    });
+  }
+
+  for (const row of attendance) {
+    if (row.status !== "Half day") continue;
+    if (row.work_date < yearStart || row.work_date > yearEnd) continue;
+    entries.push({
+      id: `half-${row.work_date}`,
+      kind: "Casual",
+      label: row.work_date,
+      detail: row.status_reason
+        ? `Half day · ${row.status_reason}`
+        : "Half day",
+      days: 0.5,
+      state: "Used",
+      sortDate: row.work_date,
+    });
+  }
+
+  return entries.sort((a, b) => {
+    const byDate = b.sortDate.localeCompare(a.sortDate);
+    if (byDate !== 0) return byDate;
+    return a.state.localeCompare(b.state);
+  });
 }
 
 export function leaveBalance(

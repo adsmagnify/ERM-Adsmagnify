@@ -17,7 +17,12 @@ export function AdminLeaves({
 }: {
   people: Profile[];
   leaves: LeaveRequest[];
-  attendance?: { user_id: string; work_date: string; status: string | null }[];
+  attendance?: {
+    user_id: string;
+    work_date: string;
+    status: string | null;
+    status_reason?: string | null;
+  }[];
 }) {
   const year = leaveYear();
   const employees = people
