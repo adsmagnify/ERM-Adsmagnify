@@ -67,9 +67,9 @@ export function OfficeNetworkCard({
     <section className="rounded-[20px] border border-border bg-white p-6 sm:p-8">
       <h2 className="font-heading text-xl font-medium">Office IP</h2>
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-        Clock in still needs GPS at Churchgate. Set a static office IP here. If
-        the ISP changes it, the next clock-in at the office updates this
-        setting automatically.
+        Clock in needs GPS at Churchgate and the office Wi‑Fi / ethernet IP.
+        Mobile data will not work. If the ISP changes the office IP, save the
+        new network here while connected to office Wi‑Fi.
       </p>
       {office ? (
         <p className="mt-4 text-sm leading-relaxed text-foreground">

@@ -6,7 +6,6 @@ import {
   assertAtOffice,
   getClientPublicIp,
   loadOfficeSettings,
-  rememberOfficeIp,
 } from "@/lib/office-server";
 import { closeOpenAttendance } from "@/lib/close-open-attendance";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -48,7 +47,6 @@ async function requireEmployeeClock(payload: ClockPayload) {
       ip,
       fix: null,
       office: null,
-      learnIp: false,
     };
   }
 
@@ -69,7 +67,6 @@ async function requireEmployeeClock(payload: ClockPayload) {
     ip,
     fix: presence.fix,
     office,
-    learnIp: presence.learnIp,
   };
 }
 
@@ -77,10 +74,6 @@ export async function clockIn(payload: ClockPayload = {}): Promise<ActionResult>
   const ready = await requireEmployeeClock(payload);
   if (!ready.ok) {
     return { error: ready.error };
-  }
-
-  if (ready.learnIp && ready.office) {
-    await rememberOfficeIp(ready.office, ready.ip);
   }
 
   const admin = createAdminClient();
@@ -138,10 +131,6 @@ export async function clockOut(payload: ClockPayload = {}): Promise<ActionResult
   const ready = await requireEmployeeClock(payload);
   if (!ready.ok) {
     return { error: ready.error };
-  }
-
-  if (ready.learnIp && ready.office) {
-    await rememberOfficeIp(ready.office, ready.ip);
   }
 
   const admin = createAdminClient();

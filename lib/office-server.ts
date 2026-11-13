@@ -185,16 +185,22 @@ export function assertAtOffice(
   const onSavedNetwork =
     Boolean(ip) && isPublicIp(ip) && ipMatches(ip as string, saved);
 
+  // Office Wi-Fi / ethernet only. GPS near the office is not enough on its
+  // own — that used to accept mobile data and then auto-save the phone IP.
   if (onSavedNetwork) {
     return { error: null, fix, learnIp: false };
   }
 
-  if (ip && isPublicIp(ip) && distance <= office.radius_m) {
-    return { error: null, fix, learnIp: true };
+  if (!saved.length) {
+    return {
+      error: "Office Wi-Fi is not saved yet. Ask an admin to save the office network.",
+      fix,
+      learnIp: false,
+    };
   }
 
   return {
-    error: "Connect to the office network (Wi-Fi or ethernet) to clock in or out.",
+    error: "Connect to the office Wi-Fi or ethernet to clock in or out. Mobile data will not work.",
     fix,
     learnIp: false,
   };
